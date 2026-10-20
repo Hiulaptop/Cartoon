@@ -19,6 +19,10 @@ services:
         NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL:?thiếu NEXT_PUBLIC_SUPABASE_URL - xem README.md}"
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?thiếu NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY - xem README.md}"
     restart: unless-stopped
+    # Biến chỉ dùng phía server, đọc lúc chạy (không nhúng vào bundle).
+    environment:
+      NINE_ROUTER_BASE_URL: ${NINE_ROUTER_BASE_URL:-}
+      NINE_ROUTER_API_KEY: ${NINE_ROUTER_API_KEY:-}
     ports:
       - "${APP_PORT:-3000}:3000"
     healthcheck:

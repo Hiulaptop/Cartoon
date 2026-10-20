@@ -62,6 +62,19 @@ Vào **Authentication** → **URL Configuration**:
 - **Site URL**: `http://localhost:3000` (khi chạy local) hoặc domain thật khi deploy.
 - **Redirect URLs**: thêm các URL app sẽ nhận redirect sau khi đăng nhập, ví dụ `http://localhost:3000/**`.
 
+## Cấu hình 9router (gọi model)
+
+Điền vào `.env`:
+
+| Biến | Ý nghĩa |
+|---|---|
+| `NINE_ROUTER_BASE_URL` | URL gốc của 9router (nếu tương thích OpenAI thường kết thúc bằng `/v1`) |
+| `NINE_ROUTER_API_KEY` | API key của 9router |
+
+- Đây là biến **chỉ dùng phía server** (không có tiền tố `NEXT_PUBLIC_`), nên key không lộ ra trình duyệt. Đọc chúng qua `src/lib/ninerouter/config.ts`, chỉ import từ code chạy trên server.
+- Khác với biến Supabase, hai biến này được đọc lúc chạy: đổi xong chỉ cần `docker compose up -d`, không cần build lại.
+- Nếu 9router chạy trên máy host còn app chạy trong Docker, dùng `http://host.docker.internal:<port>` thay cho `http://localhost:<port>`.
+
 ## Phát triển không dùng Docker
 
 ```bash
