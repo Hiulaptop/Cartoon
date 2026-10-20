@@ -1,0 +1,14 @@
+{
+  "name": "cartoon-m0-spikes",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway M0 spike scripts. Not part of the app.",
+  "dependencies": {
+    "@langchain/core": "1.2.19",
+    "@langchain/langgraph": "1.5.1",
+    "@langchain/langgraph-checkpoint-postgres": "1.1.0",
+    "googleapis": "186.0.0",
+    "pg": "8.23.1",
+    "sharp": "0.35.5"
+  }
+}
