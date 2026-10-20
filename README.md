@@ -44,13 +44,13 @@ Dừng app: `docker compose down`.
 
 Nếu không thấy mục này, bạn có thể tự ghép URL: `https://<project-ref>.supabase.co`, trong đó `<project-ref>` là chuỗi trong đường dẫn dashboard `.../project/<project-ref>`.
 
-### 3. Lấy `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+### 3. Lấy `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
 1. Vẫn ở **Project Settings** → **API Keys**.
 2. Chọn **một trong hai** (cả hai đều dùng được):
-   - **Publishable key** (`sb_publishable_...`), loại mới, nên ưu tiên.
-   - **anon key** (`eyJ...`), nằm ở tab *Legacy API Keys*.
-3. Dán vào `NEXT_PUBLIC_SUPABASE_ANON_KEY` trong `.env`.
+   - **Publishable key** (`sb_publishable_...`), loại mới, nên dùng.
+   - Hoặc **anon key** (`eyJ...`) ở tab *Legacy API Keys*, chỉ khi project chưa có publishable key.
+3. Dán vào `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` trong `.env`.
 
 > **Quan trọng:** đây là khóa công khai, được gửi xuống trình duyệt. Quyền truy cập dữ liệu do **Row Level Security (RLS)** quyết định, nên hãy bật RLS cho mọi bảng.
 > **Không bao giờ** dán `service_role` hoặc `secret` key vào biến `NEXT_PUBLIC_*`. Hai khóa đó bỏ qua RLS.

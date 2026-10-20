@@ -17,7 +17,7 @@ services:
       # NEXT_PUBLIC_* được nhúng vào bundle lúc build, nên đổi .env thì phải build lại.
       args:
         NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL:?thiếu NEXT_PUBLIC_SUPABASE_URL - xem README.md}"
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?thiếu NEXT_PUBLIC_SUPABASE_ANON_KEY - xem README.md}"
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?thiếu NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY - xem README.md}"
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3000}:3000"

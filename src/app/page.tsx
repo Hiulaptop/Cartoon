@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ type Check = { name: string; path: string; ok: boolean };
 async function probe(name: string, path: string): Promise<Check> {
   try {
     const res = await fetch(`${SUPABASE_URL}${path}`, {
-      headers: { apikey: SUPABASE_ANON_KEY },
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY },
       cache: "no-store",
       signal: AbortSignal.timeout(3000),
     });
