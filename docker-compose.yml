@@ -1,0 +1,29 @@
+# Triển khai app Next.js (kết nối Supabase Cloud) bằng MỘT lệnh:
+#
+#   cp .env.example .env      # chỉ lần đầu (PowerShell: Copy-Item .env.example .env)
+#   # mở .env, điền URL và key lấy từ Supabase (xem README.md)
+#   docker compose up -d --build
+#
+# App chạy tại http://localhost:3000
+# Dừng: docker compose down
+
+name: cartoon
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # NEXT_PUBLIC_* được nhúng vào bundle lúc build, nên đổi .env thì phải build lại.
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL:?thiếu NEXT_PUBLIC_SUPABASE_URL - xem README.md}"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "${NEXT_PUBLIC_SUPABASE_ANON_KEY:?thiếu NEXT_PUBLIC_SUPABASE_ANON_KEY - xem README.md}"
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
