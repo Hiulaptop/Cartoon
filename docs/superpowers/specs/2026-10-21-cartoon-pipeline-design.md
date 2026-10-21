@@ -48,10 +48,11 @@ Một tool sản xuất video hoạt hình 2D tiếng Anh cho YouTube, gồm 7 f
 - **LangGraph chỉ dùng bên trong một bước** cho vòng viết–validate–sửa (bước 3; sau này có thể cả bước 2).
 - **Hàng đợi:** extension `pgmq` của Postgres (nền tảng của Supabase Queues), gọi bằng SQL.
 - **Lớp storage:** mọi đọc ghi file đi qua một module nhỏ, để sau này chuyển sang object storage chỉ cần đổi một chỗ.
-- **Docker Compose có 2 service:**
-  - `app`: Next.js (giữ image Alpine hiện tại), chỉ mở cổng trên `127.0.0.1:3000` vì không có đăng nhập.
-  - `worker`: image `node:22-bookworm-slim` kèm thư viện cho Chrome Headless Shell. Tài liệu Remotion khuyên không dùng Alpine.
-  - Cả hai mount `./data`.
+- **Docker Compose có 3 service:**
+  - `migrate`: chạy migration rồi thoát; `app` và `worker` chỉ khởi động sau khi nó thành công.
+  - `app`: Next.js (image Alpine), chỉ mở cổng trên `127.0.0.1:3000` vì không có đăng nhập.
+  - `worker`: image `node:22-bookworm-slim`, chạy TypeScript bằng `tsx`; thư viện cho Chrome Headless Shell thêm ở M6. Tài liệu Remotion khuyên không dùng Alpine.
+  - `app` và `worker` mount `./data` và `./certs`.
 - **Thay đổi so với repo hiện tại:** bỏ `@supabase/ssr`, `@supabase/supabase-js`, `src/lib/supabase/*`, và hai biến `NEXT_PUBLIC_SUPABASE_*`. Trang trạng thái sẽ đổi sang kiểm tra kết nối Postgres.
 
 ## 4. Mô hình dữ liệu
@@ -63,14 +64,14 @@ Trạng thái dùng chung cho đối tượng cần duyệt: `draft → generati
 | `channels` | `name`, `youtube_channel_id`. Thông tin đăng nhập ở env, không lưu DB. |
 | `assets` | `name` (duy nhất, theo chuẩn đặt tên), `kind` (`chr`/`bg`/`prop`/`fx`), `display_name`, `description`, `aliases[]`, `status` |
 | `asset_variants` | `asset_id`, `state` (theo danh sách cho phép; `base` = ảnh gốc), `file_path`, `width`, `height`, `prompt`, `status`. Duy nhất theo (`asset_id`, `state`). |
-| `videos` | `channel_id`, `title`, `brief`, `combo_id` (nullable), `status` |
+| `videos` | `channel_id` (cho phép NULL; bắt buộc khi upload), `title`, `brief`, `combo_id` (nullable), `status` (`scripting/storyboarding/rendering/uploading/done`) |
 | `scripts` | `video_id`, `version`, `content` (JSON), `model`, `status` |
-| `scenes` | `video_id`, `script_id`, `order`, `dsl` (JSON), `dsl_version`, `duration_frames`, `status` |
+| `scenes` | `video_id`, `script_id`, `position` (thứ tự cảnh; `order` là từ khóa SQL), `dsl` (JSON), `dsl_version`, `duration_frames`, `status` |
 | `validations` | `target_type`, `target_id`, `validator_model`, `rubric_version`, `scores` (JSON), `verdict`, `feedback` |
 | `reviews` | `target_type`, `target_id`, `decision`, `reason`, `created_at` |
-| `renders` | `video_id`, `file_path`, `duration`, `status`, `error` |
-| `uploads` | `video_id`, `channel_id`, `youtube_video_id`, `privacy_status`, `made_for_kids` (mặc định `false`), `attempts`, `status`, `error` |
-| `job_runs` | `job_type`, `target_type`, `target_id`, `status`, `attempts`, `error`, `metrics` (JSON: model đã gọi, số token), `started_at`, `finished_at` |
+| `renders` | `video_id`, `file_path`, `duration_ms`, `status`, `error` |
+| `uploads` | `video_id`, `channel_id`, `youtube_video_id`, `privacy_status`, `made_for_kids` (mặc định `false`), `attempts`, `status` (dùng enum `job_status`), `error` |
+| `job_runs` | `job_type`, `target_type`/`target_id` (cho phép NULL với job hệ thống), `status`, `attempts`, `error`, `metrics` (JSON: model đã gọi, số token), `queue_msg_id`, `created_at`, `started_at`, `finished_at` |
 | `combos` | Bảng có ngay (để `videos.combo_id` tham chiếu), nạp sẵn **một** combo cố định cho lát cắt đầu. Chi tiết cột chốt ở spec combo và ACE. |
 
 - `validations` và `reviews` tham chiếu đa hình bằng (`target_type`, `target_id`), **không có khóa ngoại thật**. Đổi lại có một chỗ duy nhất để ACE đọc toàn bộ lịch sử chấm và duyệt.
@@ -151,10 +152,10 @@ Tên cuối cùng chốt trong plan từng mốc.
 
 | Biến | Dùng ở | Ghi chú |
 |---|---|---|
-| `DATABASE_URL` | app, worker | Chuỗi kết nối Postgres của Supabase (bí mật, chỉ server) |
+| `DATABASE_URL`, `DATABASE_CA_CERT` | app, worker | Chuỗi Session pooler của Supabase (bí mật, chỉ server); CA cert của Supabase, đường dẫn vd. `certs/supabase-ca.crt` (bắt buộc: kho CA hệ thống không xác minh được) |
 | `NINE_ROUTER_BASE_URL`, `NINE_ROUTER_API_KEY` | worker (và app nếu cần) | Đã có |
 | `LLM_WRITER_MODEL`, `LLM_JUDGE_MODEL`, `IMAGE_MODEL` | worker | Giám khảo phải khác họ với model viết |
-| `DATA_DIR` | app, worker | Mặc định `/app/data` trong container |
+| `DATA_DIR` | app, worker | Mặc định `./data`; `/app/data` trong container |
 | `YOUTUBE_OAUTH_CLIENT_ID`, `YOUTUBE_OAUTH_CLIENT_SECRET`, refresh token theo kênh | worker | Dạng lưu refresh token theo kênh chốt ở plan M7 |
 
 ## 10. Kiểm thử
@@ -187,7 +188,7 @@ Kết quả M0 có thể làm đổi thiết kế; khi đó cập nhật spec n�
 |---|---|
 | Model `ag/gemini-3.1-flash-image` có nhận ảnh tham chiếu và cho nền trong suốt không | M0 |
 | Supabase có cho bật `pgmq`; loại chuỗi kết nối phù hợp cho `pgmq` và `PostgresSaver` | M0 / M1 |
-| Công cụ ORM và migration | M1 |
+| Công cụ ORM và migration | Đã xác minh: Drizzle 0.45.4 + drizzle-kit 0.31.11 (M1) |
 | Ngưỡng tốc độ đọc phụ đề | M4 |
 | Nguyên văn định nghĩa TV Parental Guidelines từ trang chính thức (hiện mới có nguồn thứ cấp) | M5 |
 | `videos.insert` bắt buộc OAuth; kiểm tra lại nguyên văn quota (đã đọc qua công cụ tóm tắt) | M7 |
