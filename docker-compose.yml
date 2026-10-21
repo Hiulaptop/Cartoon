@@ -1,33 +1,65 @@
-# Triển khai app Next.js (kết nối Supabase Cloud) bằng MỘT lệnh:
+# Chạy toàn bộ hệ thống bằng MỘT lệnh:
 #
-#   cp .env.example .env      # chỉ lần đầu (PowerShell: Copy-Item .env.example .env)
-#   # mở .env, điền URL và key lấy từ Supabase (xem README.md)
+#   cp .env.example .env      # lần đầu; điền DATABASE_URL và 9router (xem README.md)
 #   docker compose up -d --build
 #
-# App chạy tại http://localhost:3000
+# migrate chạy migration rồi thoát; sau đó worker và app khởi động.
+# App: http://127.0.0.1:3000 (chỉ nghe trên máy này vì chưa có đăng nhập).
 # Dừng: docker compose down
 
 name: cartoon
 
+x-runtime-env: &runtime-env
+  DATABASE_URL: "${DATABASE_URL:?thiếu DATABASE_URL trong .env - xem README.md}"
+  DATABASE_CA_CERT: ${DATABASE_CA_CERT:-}
+  DATA_DIR: /app/data
+  NINE_ROUTER_BASE_URL: ${NINE_ROUTER_BASE_URL:-}
+  NINE_ROUTER_API_KEY: ${NINE_ROUTER_API_KEY:-}
+  LLM_WRITER_MODEL: ${LLM_WRITER_MODEL:-}
+  LLM_JUDGE_MODEL: ${LLM_JUDGE_MODEL:-}
+  IMAGE_MODEL: ${IMAGE_MODEL:-}
+
+# App và worker dùng chung ./data (ảnh, video) và ./certs (CA cert của Supabase, nếu cần).
+x-runtime-volumes: &runtime-volumes
+  - ./data:/app/data
+  - ./certs:/app/certs:ro
+
 services:
+  migrate:
+    build:
+      context: .
+      target: worker
+    command: ["node_modules/.bin/tsx", "src/lib/db/migrate.ts"]
+    environment: *runtime-env
+    volumes: *runtime-volumes
+    restart: "no"
+
+  worker:
+    build:
+      context: .
+      target: worker
+    restart: unless-stopped
+    environment: *runtime-env
+    volumes: *runtime-volumes
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-      # NEXT_PUBLIC_* được nhúng vào bundle lúc build, nên đổi .env thì phải build lại.
-      args:
-        NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL:?thiếu NEXT_PUBLIC_SUPABASE_URL - xem README.md}"
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?thiếu NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY - xem README.md}"
+      target: runner
     restart: unless-stopped
-    # Biến chỉ dùng phía server, đọc lúc chạy (không nhúng vào bundle).
-    environment:
-      NINE_ROUTER_BASE_URL: ${NINE_ROUTER_BASE_URL:-}
-      NINE_ROUTER_API_KEY: ${NINE_ROUTER_API_KEY:-}
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    environment: *runtime-env
+    volumes: *runtime-volumes
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

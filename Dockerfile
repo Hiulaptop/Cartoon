@@ -1,28 +1,36 @@
 # syntax=docker/dockerfile:1
 
-# ---- base ----
+# ===== worker + migrate: Debian (Remotion ở M6 không chạy tốt trên Alpine) =====
+FROM node:22-bookworm-slim AS worker-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
+
+FROM node:22-bookworm-slim AS worker
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=worker-deps /app/node_modules ./node_modules
+COPY package.json tsconfig.json ./
+COPY drizzle ./drizzle
+COPY src ./src
+USER node
+CMD ["node_modules/.bin/tsx", "src/worker/index.ts"]
+
+# ===== app Next.js: Alpine, bản standalone (stage cuối = mặc định của `docker build`) =====
 FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# ---- deps: cài thư viện (cache theo package-lock) ----
 FROM base AS deps
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
-# ---- builder: lint + build ----
 FROM base AS builder
-# Biến NEXT_PUBLIC_* được nhúng vào bundle lúc build nên phải truyền qua build args.
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
-    NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run lint && npm run build
 
-# ---- runner: image chạy thật, chỉ chứa bản standalone ----
 FROM base AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

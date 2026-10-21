@@ -8,6 +8,7 @@ node_modules
 docs
 data
 scripts
+certs
 Dockerfile
 .dockerignore
 docker-compose.yml
