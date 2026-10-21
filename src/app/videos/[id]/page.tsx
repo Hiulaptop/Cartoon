@@ -96,7 +96,13 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
         );
       })}
 
-      <p className="text-sm text-muted-foreground">Tiếp theo: Phân cảnh (M5) · Render (M6) · Upload (M7)</p>
+      <p className="text-sm text-muted-foreground">
+        Tiếp theo:{" "}
+        <Link href={`/scenes/${video.id}`} className="underline">
+          Phân cảnh
+        </Link>{" "}
+        · Render (M6) · Upload (M7)
+      </p>
     </div>
   );
 }
