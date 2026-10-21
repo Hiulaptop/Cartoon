@@ -68,3 +68,17 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  # Tunnel công khai cartoon.studev.net. Chỉ chạy khi COMPOSE_PROFILES=publish trong .env;
+  # để trống (dev) thì `docker compose up` không khởi động tunnel.
+  # Hostname công khai cấu hình trên Cloudflare Zero Trust: cartoon.studev.net -> http://app:3000
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: ["publish"]
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on:
+      app:
+        condition: service_healthy
