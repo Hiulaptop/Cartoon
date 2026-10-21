@@ -17,5 +17,5 @@ export const PIPELINE_STEPS: readonly PipelineStep[] = [
   { number: 4, title: "Sinh cảnh", description: "Xem trước cảnh bằng Remotion", milestone: "M3", href: "/scenes" },
   { number: 5, title: "Âm thanh", description: "Tạm ẩn, lồng tiếng làm sau", milestone: "Sau lát cắt đầu", hidden: true },
   { number: 6, title: "Ghép video", description: "Render toàn tập ra MP4", milestone: "M6", href: "/render" },
-  { number: 7, title: "Upload", description: "Duyệt và upload YouTube", milestone: "M7" },
+  { number: 7, title: "Upload", description: "Duyệt và upload YouTube", milestone: "M7", href: "/upload" },
 ];

@@ -42,9 +42,19 @@ export async function uploadYoutube(payload: JobPayload) {
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(uploads).where(and(eq(uploads.status, "succeeded"), gte(uploads.updatedAt, since)));
   if (n >= DAILY_UPLOAD_LIMIT) throw new DeferredJobError(DEFER_SECONDS, `Đã upload ${n} video trong 24 giờ qua; hẹn lại sau 1 giờ`);
 
+  // Thiếu cấu hình OAuth là lỗi cố định, không thử lại.
+  let yt: ReturnType<typeof youtubeClient>;
+  try {
+    yt = youtubeClient();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await db.update(uploads).set({ status: "failed", error: message }).where(eq(uploads.id, uploadId));
+    throw new PermanentJobError(message);
+  }
+
   await db.update(uploads).set({ status: "running", attempts: upload.attempts + 1, error: null }).where(eq(uploads.id, uploadId));
   try {
-    const res = await youtubeClient().videos.insert({
+    const res = await yt.videos.insert({
       part: ["snippet", "status"],
       requestBody: {
         snippet: { title: meta.title, description: meta.description, tags: meta.tags, categoryId: meta.categoryId },
