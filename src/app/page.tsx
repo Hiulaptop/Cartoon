@@ -13,11 +13,14 @@ type Check = { name: string; path: string; ok: boolean };
 
 async function probe(name: string, path: string): Promise<Check> {
   try {
-    const res = await fetch(`${SUPABASE_URL}${path}`, {
+    // new URL() thay vì nối chuỗi để URL có "/" ở cuối không tạo ra "//auth/...".
+    const res = await fetch(new URL(path, SUPABASE_URL), {
       headers: { apikey: SUPABASE_PUBLISHABLE_KEY },
       cache: "no-store",
       signal: AbortSignal.timeout(3000),
     });
+    // Chỉ cần status: hủy body để undici trả kết nối về pool ngay, không chờ GC.
+    await res.body?.cancel();
     return { name, path, ok: res.ok };
   } catch {
     return { name, path, ok: false };
