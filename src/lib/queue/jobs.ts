@@ -7,7 +7,7 @@ import { jobRuns, targetType } from "@/lib/db/schema";
 export const JOB_QUEUE = "jobs";
 
 // Mỗi mốc sau thêm loại job của mình vào đây (vd. "asset.generate" ở M2).
-export const JOB_TYPES = ["system.ping", "system.llm_ping"] as const;
+export const JOB_TYPES = ["system.ping", "system.llm_ping", "asset.generate_base", "asset.generate_variant"] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 export type JobPayload = Record<string, unknown>;
 export type JobTarget = { type: (typeof targetType.enumValues)[number]; id: string };

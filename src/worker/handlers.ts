@@ -1,13 +1,11 @@
 import { chat, requireModel } from "@/lib/ninerouter/client";
-import type { JobPayload, JobType } from "@/lib/queue/jobs";
+import type { JobType } from "@/lib/queue/jobs";
 import { writeDataFile } from "@/lib/storage";
 
-export type JobContext = { jobRunId: string; attempt: number };
-// Giá trị trả về được ghi vào job_runs.metrics.
-export type JobHandler = (payload: JobPayload, ctx: JobContext) => Promise<Record<string, unknown> | void>;
+import { generateBase, generateVariant } from "./asset-jobs";
+import { PermanentJobError, type JobHandler } from "./job-types";
 
-// Lỗi không nên thử lại (dữ liệu sai, thiếu cấu hình...): job chuyển `failed` ngay.
-export class PermanentJobError extends Error {}
+export { PermanentJobError };
 
 export const handlers: Record<JobType, JobHandler> = {
   // Kiểm tra đường app → hàng đợi → worker → DB, và worker ghi được vào DATA_DIR.
@@ -33,4 +31,8 @@ export const handlers: Record<JobType, JobHandler> = {
     });
     return { model: res.model, reply: res.content.trim().slice(0, 50), usage: res.usage };
   },
+
+  // Bước 1 (M2): asset.
+  "asset.generate_base": generateBase,
+  "asset.generate_variant": generateVariant,
 };
