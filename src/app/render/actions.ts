@@ -22,7 +22,7 @@ export async function startRender(_prev: FormState, form: FormData): Promise<For
   if (existing.some((r) => r.status === "generating")) return { error: "Đang có bản render chạy" };
   const [render] = await db.insert(renders).values({ videoId, status: "generating" }).returning({ id: renders.id });
   await enqueueJob("video.render", { renderId: render.id }, { type: "render", id: render.id });
-  revalidatePath(`/render/${videoId}`);
+  revalidatePath(`/designs/${videoId}/render`);
   return {};
 }
 
@@ -33,7 +33,7 @@ export async function approveRender(_prev: FormState, form: FormData): Promise<F
   await db.update(renders).set({ status: "approved" }).where(eq(renders.id, render.id));
   await db.update(videos).set({ status: "uploading" }).where(eq(videos.id, render.videoId));
   await db.insert(reviews).values({ targetType: "render", targetId: render.id, decision: "approved" });
-  revalidatePath(`/render/${render.videoId}`);
+  revalidatePath(`/designs/${render.videoId}/render`);
   return {};
 }
 
@@ -47,6 +47,6 @@ export async function rejectRender(_prev: FormState, form: FormData): Promise<Fo
   await db.update(renders).set({ status: "rejected" }).where(eq(renders.id, render.id));
   await db.insert(reviews).values({ targetType: "render", targetId: render.id, decision: "rejected", reason });
   await db.update(videos).set({ status: "storyboarding" }).where(eq(videos.id, render.videoId));
-  revalidatePath(`/render/${render.videoId}`);
+  revalidatePath(`/designs/${render.videoId}/render`);
   return {};
 }

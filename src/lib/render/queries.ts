@@ -5,10 +5,6 @@ import { jobRuns, renders, videos } from "@/lib/db/schema";
 
 export type RenderRow = typeof renders.$inferSelect;
 
-export async function listRenderableVideos() {
-  return getDb().select().from(videos).where(eq(videos.status, "rendering")).orderBy(desc(videos.createdAt));
-}
-
 // Các lần render của video (mới nhất trước), kèm tiến độ 0..1 của job đang chạy.
 export async function getRenders(videoId: string) {
   const db = getDb();

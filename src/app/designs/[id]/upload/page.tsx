@@ -1,5 +1,4 @@
 import { and, desc, eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -15,8 +14,8 @@ const UUID_RE = /^[0-9a-f-]{36}$/i;
 const STATUS_LABEL: Record<string, string> = { queued: "Đang chờ", running: "Đang upload…", succeeded: "Đã upload", failed: "Lỗi" };
 const PRIVACY_LABEL: Record<string, string> = { private: "riêng tư", unlisted: "không công khai", public: "công khai" };
 
-export default async function UploadVideoPage({ params }: { params: Promise<{ videoId: string }> }) {
-  const { videoId } = await params;
+export default async function UploadVideoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: videoId } = await params;
   if (!UUID_RE.test(videoId)) notFound();
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
@@ -37,10 +36,6 @@ export default async function UploadVideoPage({ params }: { params: Promise<{ vi
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <AutoRefresh active={busy} />
       <div>
-        <Link href="/upload" className="text-sm text-muted-foreground hover:underline">
-          ← Upload
-        </Link>
-        <h1 className="text-2xl font-semibold">{video.title}</h1>
       </div>
 
       {render?.filePath && <video controls preload="metadata" src={`/api/files/${render.filePath}`} className="w-full rounded-lg bg-black" />}

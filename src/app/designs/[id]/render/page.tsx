@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -19,8 +18,8 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Lỗi",
 };
 
-export default async function RenderVideoPage({ params }: { params: Promise<{ videoId: string }> }) {
-  const { videoId } = await params;
+export default async function RenderVideoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: videoId } = await params;
   if (!UUID_RE.test(videoId)) notFound();
   const data = await getRenders(videoId);
   if (!data) notFound();
@@ -31,10 +30,6 @@ export default async function RenderVideoPage({ params }: { params: Promise<{ vi
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <AutoRefresh active={busy} />
       <div>
-        <Link href="/render" className="text-sm text-muted-foreground hover:underline">
-          ← Ghép video
-        </Link>
-        <h1 className="text-2xl font-semibold">{video.title}</h1>
       </div>
       {video.status === "rendering" && !busy && <StartRenderButton videoId={videoId} />}
       {video.status !== "rendering" && rows.length === 0 && (

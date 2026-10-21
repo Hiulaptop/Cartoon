@@ -45,10 +45,6 @@ export async function getStoryboard(videoId: string) {
   return { video, script, rows, checks, running: await storyboardJobRunning(script.id) };
 }
 
-export async function listVideosWithScript() {
-  return getDb().select().from(videos).orderBy(desc(videos.createdAt));
-}
-
 // Tỉ lệ giám khảo đồng thuận với người (spec §6): chỉ tính bản chấm cuối của giám khảo cho cảnh đã có quyết định người.
 export async function agreementRate(): Promise<{ agree: number; total: number }> {
   const db = getDb();

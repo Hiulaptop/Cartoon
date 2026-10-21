@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -25,8 +24,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 type JudgeDetail = { average?: number | null; blocked?: string[]; result?: { feedback?: string } };
 
-export default async function StoryboardPage({ params }: { params: Promise<{ videoId: string }> }) {
-  const { videoId } = await params;
+export default async function StoryboardPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: videoId } = await params;
   if (!UUID_RE.test(videoId)) notFound();
   const data = await getStoryboard(videoId);
   if (!data) notFound();
@@ -37,10 +36,6 @@ export default async function StoryboardPage({ params }: { params: Promise<{ vid
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <AutoRefresh active={running} />
       <div>
-        <Link href="/scenes" className="text-sm text-muted-foreground hover:underline">
-          ← Sinh cảnh
-        </Link>
-        <h1 className="text-2xl font-semibold">{video.title}</h1>
         {!script && <p className="text-sm text-muted-foreground">Video chưa có kịch bản đã duyệt. Duyệt ở bước 2 trước.</p>}
         {running && <p className="text-sm text-muted-foreground">Đang phân cảnh (viết, kiểm tra, giám khảo chấm)…</p>}
       </div>

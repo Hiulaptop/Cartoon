@@ -17,7 +17,7 @@ const text = (form: FormData, key: string) => {
 export async function suggest(_prev: FormState, form: FormData): Promise<FormState> {
   const videoId = text(form, "videoId");
   await enqueueJob("upload.suggest_metadata", { videoId }, { type: "video", id: videoId });
-  revalidatePath(`/upload/${videoId}`);
+  revalidatePath(`/designs/${videoId}/upload`);
   return {};
 }
 
@@ -59,6 +59,6 @@ export async function startUpload(_prev: FormState, form: FormData): Promise<For
     .returning({ id: uploads.id });
   await db.update(videos).set({ channelId: channel.id }).where(eq(videos.id, videoId));
   await enqueueJob("upload.youtube", { uploadId: upload.id, metadata }, { type: "upload", id: upload.id });
-  revalidatePath(`/upload/${videoId}`);
+  revalidatePath(`/designs/${videoId}/upload`);
   return {};
 }

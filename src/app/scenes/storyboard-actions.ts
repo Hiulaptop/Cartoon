@@ -20,7 +20,7 @@ export async function startStoryboard(_prev: FormState, form: FormData): Promise
   if (!script) return { error: "Video chưa có kịch bản đã duyệt" };
   if (await storyboardJobRunning(script.id)) return { error: "Đang có job phân cảnh chạy cho kịch bản này" };
   await enqueueJob("scenes.generate", { scriptId: script.id }, { type: "script", id: script.id });
-  revalidatePath(`/scenes/${videoId}`);
+  revalidatePath(`/designs/${videoId}/storyboard`);
   return {};
 }
 
@@ -45,7 +45,7 @@ export async function approveScene(_prev: FormState, form: FormData): Promise<Fo
   await db.update(scenes).set({ status: "approved" }).where(eq(scenes.id, scene.id));
   await db.insert(reviews).values({ targetType: "scene", targetId: scene.id, decision: "approved" });
   await advanceIfAllApproved(scene.videoId, scene.scriptId);
-  revalidatePath(`/scenes/${scene.videoId}`);
+  revalidatePath(`/designs/${scene.videoId}/storyboard`);
   return {};
 }
 
@@ -60,7 +60,7 @@ export async function approveAllScenes(_prev: FormState, form: FormData): Promis
     await db.insert(reviews).values({ targetType: "scene", targetId: s.id, decision: "approved" });
   }
   await advanceIfAllApproved(videoId, script.id);
-  revalidatePath(`/scenes/${videoId}`);
+  revalidatePath(`/designs/${videoId}/storyboard`);
   return {};
 }
 
@@ -83,6 +83,6 @@ export async function rejectScene(_prev: FormState, form: FormData): Promise<For
     { scriptId: scene.scriptId, positions: [scene.position], humanFeedback: reason ? { [scene.position]: reason } : {} },
     { type: "script", id: scene.scriptId },
   );
-  revalidatePath(`/scenes/${scene.videoId}`);
+  revalidatePath(`/designs/${scene.videoId}/storyboard`);
   return {};
 }

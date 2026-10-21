@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
+import { ChangeSeriesForm, StartScriptForm } from "@/components/designs/start-script";
 import { ScriptReview } from "@/components/videos/script-review";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { loadApprovedCatalog } from "@/lib/scene/catalog";
 import { scriptContentSchema } from "@/lib/script/schema";
+import { listSeries, readySeriesIds } from "@/lib/series/queries";
 import { getVideo } from "@/lib/video/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,24 +22,40 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Lỗi lớp 1",
 };
 
-export default async function VideoPage({ params }: { params: Promise<{ id: string }> }) {
+// Bước 2 (kịch bản) của một bản thiết kế. Khung (tiêu đề, tab) nằm ở layout.
+export default async function DesignScriptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const data = await getVideo(id);
   if (!data) notFound();
   const { video, versions } = data;
   const busy = versions.some((v) => v.status === "generating");
+  // Chưa có kịch bản: cho chọn asset để viết, và cho đổi bộ phim (spec §3.3 mục 2).
+  const start =
+    versions.length === 0
+      ? await Promise.all([loadApprovedCatalog(video.seriesId), listSeries(), readySeriesIds()]).then(([catalog, all, ready]) => ({
+          assets: [...catalog.values()].map((a) => ({ name: a.name, displayName: a.displayName, kind: a.kind })),
+          series: all.filter((s) => ready.has(s.id) || s.id === video.seriesId).map((s) => ({ id: s.id, name: s.name })),
+        }))
+      : null;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <AutoRefresh active={busy} />
-      <div>
-        <Link href="/videos" className="text-sm text-muted-foreground hover:underline">
-          ← Video
-        </Link>
-        <h1 className="text-2xl font-semibold">{video.title}</h1>
-        {video.brief && <p className="text-sm text-muted-foreground">{video.brief}</p>}
-      </div>
+      {video.brief && <p className="text-sm text-muted-foreground">{video.brief}</p>}
+
+      {start && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Viết kịch bản</CardTitle>
+            <CardDescription>Chọn asset của bộ phim cho tập này. Đổi bộ phim chỉ làm được trước khi có kịch bản.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <ChangeSeriesForm videoId={video.id} current={video.seriesId} series={start.series} />
+            <StartScriptForm videoId={video.id} assets={start.assets} />
+          </CardContent>
+        </Card>
+      )}
 
       {versions.map((v, index) => {
         const content = scriptContentSchema.safeParse(v.content);
@@ -98,10 +117,9 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
 
       <p className="text-sm text-muted-foreground">
         Tiếp theo:{" "}
-        <Link href={`/scenes/${video.id}`} className="underline">
+        <Link href={`/designs/${video.id}/storyboard`} className="underline">
           Phân cảnh
-        </Link>{" "}
-        · Render (M6) · Upload (M7)
+        </Link>
       </p>
     </div>
   );

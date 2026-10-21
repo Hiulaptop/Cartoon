@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 
 import type { FormState } from "@/lib/form";
-import { approveScript, regenerateScript, rejectScript } from "@/app/videos/actions";
+import { approveScript, regenerateScript, rejectScript } from "@/app/designs/actions";
 import { Button } from "@/components/ui/button";
 
 const fieldClass = "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm";

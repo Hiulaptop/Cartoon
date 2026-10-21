@@ -7,10 +7,6 @@ export type Video = typeof videos.$inferSelect;
 export type ScriptRow = typeof scripts.$inferSelect;
 export type Validation = typeof validations.$inferSelect;
 
-export async function listVideos() {
-  return getDb().select().from(videos).orderBy(desc(videos.createdAt));
-}
-
 export async function getVideo(id: string) {
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
