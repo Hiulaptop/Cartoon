@@ -83,13 +83,16 @@ Trạng thái dùng chung cho đối tượng cần duyệt: `draft → generati
 
 Mẫu chung: người dùng bấm → app đẩy job → worker xử lý → kết quả `pending_review` → duyệt sang bước sau. Bị loại thì ghi lý do vào `reviews`; lý do đó đi kèm khi sinh lại.
 
-1. **Assets.** Người dùng nhập loại và mô tả ngắn. LLM viết mô tả chi tiết, đề xuất tên đúng chuẩn và viết prompt ảnh. 9router sinh ảnh `base`. Duyệt thì lưu tên, mô tả, `width`/`height` (đọc từ file). Sau đó sinh biến thể trạng thái, mỗi biến thể duyệt riêng, dùng ảnh `base` làm tham chiếu nếu model hỗ trợ.
+1. **Assets.** Người dùng nhập loại và mô tả ngắn. LLM viết mô tả chi tiết, đề xuất tên đúng chuẩn và viết prompt ảnh. 9router sinh ảnh `base`. Duyệt thì lưu tên, mô tả, `width`/`height`. Sau đó sinh biến thể trạng thái, mỗi biến thể duyệt riêng.
+   - **Xử lý ảnh (kết luận M0):** với `chr`, `prop`, `fx` luôn yêu cầu nền `#00FF00` phẳng, không bao giờ yêu cầu nền trong suốt (model vẽ ô caro giả). Worker tách nền theo ngưỡng màu, khử ám xanh ở viền, **cắt sát** vùng có nội dung, lưu PNG có alpha; `width`/`height` là kích thước **sau khi cắt**. `bg` không tách nền.
+   - Định dạng ảnh đọc từ nội dung file (`sniffImage`), không tin `Content-Type` của router.
+   - **Nhất quán biến thể:** model hiện tại (`textToImage`) không đảm bảo giữ nhân vật giữa các biến thể; nhất quán dựa vào mô tả chi tiết cố định và người duyệt loại ảnh lệch. Hướng cải thiện (quyết định sau): thêm nhà cung cấp có chế độ sửa theo ảnh vào 9router, hoặc làm sớm rig.
 2. **Kịch bản.** Đầu vào: brief và danh sách asset đã duyệt (tên, mô tả). LLM trả JSON gồm các nhịp, câu thoại gắn `@chr_...`, ghi chú hành động, đánh dấu miếng hài. Dùng khung truyện của combo cố định. Qua validate lớp 1 rồi chờ duyệt.
 3. **Phân cảnh (LangGraph).** Các node: `chia_cảnh → viết_JSON_cảnh → kiểm_tra_máy → giám_khảo`. Đạt thì xong; chưa đạt thì sửa theo nhận xét, tối đa **2 vòng**, quá thì chuyển `failed` để người xử lý. Trạng thái lưu bằng `PostgresSaver`. Kết quả chờ duyệt.
 4. **Sinh cảnh.** Không có job riêng. JSON cảnh được component Remotion dựng hình; xem trước trên trình duyệt bằng Remotion Player.
 5. **Âm thanh.** Ẩn. Thoại hiển thị dạng phụ đề hoặc bóng thoại. Sau này: TTS qua 9router (router hỗ trợ loại `tts`) hoặc ElevenLabs.
 6. **Ghép video.** Duyệt đủ các cảnh thì worker render **một** composition Remotion xếp nối các cảnh, ra `data/renders/<video-id>.mp4`. Người dùng xem MP4 và duyệt.
-7. **Upload.** Người dùng nhập tiêu đề, mô tả, tag (LLM có thể gợi ý). Worker gọi `videos.insert` với `made_for_kids = false` và **mặc định `private`**. Thông tin kênh tạm để trong env (OAuth client và refresh token cho mỗi kênh, lấy một lần bằng script tay).
+7. **Upload.** Người dùng nhập tiêu đề, mô tả, tag (LLM có thể gợi ý). Worker gọi `videos.insert` với `made_for_kids = false` và **mặc định `private`**. Thông tin kênh tạm để trong env (OAuth client và refresh token cho mỗi kênh, lấy một lần bằng script tay). **Lưu ý (M0):** project OAuth ở trạng thái Testing nhận refresh token hết hạn sau 7 ngày; M7 phải chọn đăng nhập lại mỗi tuần hoặc đưa app OAuth sang Production (tra yêu cầu xác minh của Google cho `youtube.upload` ở plan M7).
 
 ### Khuôn JSON cảnh
 
@@ -199,6 +202,8 @@ Kết quả M0 có thể làm đổi thiết kế; khi đó cập nhật spec n�
 
 - **License Remotion:** miễn phí khi tối đa 3 người vận hành. Từ 4 người phải mua Company License (gói cho tool tự động: $0.01/lần render, tối thiểu $100/tháng).
 - **Quota YouTube** 100 upload/ngày/project chạm đúng mốc 100 video/ngày, nên khi mở rộng cần nhiều project hoặc kênh.
+- **Nhất quán biến thể asset:** model ảnh hiện tại không giữ chi tiết nhân vật giữa các lần sinh (M0); xem §5 bước 1.
+- **Render (số đo M0):** 90 s video 1080p render trong 25.1 s trên Docker VM 20 CPU; ước lượng 100 video × 5 phút ≈ 2.3 giờ tuần tự. Render cục bộ đủ cho giai đoạn đầu; chỉ xét render trên cloud khi số đo thực tế với cảnh nhiều lớp vượt khả năng máy.
 - **Router của người vận hành hiện chưa có tính năng sinh video.** Không ảnh hưởng, vì đã chọn chỉ dùng Remotion.
 - **Không có đăng nhập:** app chỉ mở trên `127.0.0.1`. Không đưa lên mạng công khai khi chưa thêm đăng nhập.
 
