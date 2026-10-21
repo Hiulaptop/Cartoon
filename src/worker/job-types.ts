@@ -6,3 +6,13 @@ export type JobHandler = (payload: JobPayload, ctx: JobContext) => Promise<Recor
 
 // Lỗi không nên thử lại (dữ liệu sai, thiếu cấu hình...): job chuyển `failed` ngay.
 export class PermanentJobError extends Error {}
+
+// Chưa làm được lúc này nhưng không phải lỗi (hết hạn mức ngày...): hẹn lại sau `seconds`, không tính vào số lần thử.
+export class DeferredJobError extends Error {
+  constructor(
+    readonly seconds: number,
+    reason: string,
+  ) {
+    super(reason);
+  }
+}

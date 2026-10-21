@@ -7,6 +7,7 @@ import { archiveJob, readJob, retryJobIn } from "@/lib/queue/consume";
 import { isJobType, type JobMessage } from "@/lib/queue/jobs";
 
 import { handlers, PermanentJobError } from "./handlers";
+import { DeferredJobError } from "./job-types";
 
 // Job phải xong trong khoảng này; quá hạn thì coi như worker đã chết và message hiện lại cho lần thử sau.
 export const VISIBILITY_TIMEOUT_SECONDS = 300;
@@ -43,6 +44,10 @@ export async function processOne(db: Db): Promise<boolean> {
   await db.update(jobRuns).set({ status: "running", attempts: attempt, startedAt: new Date(), error: null }).where(where);
   log("job.start", { jobRunId: job.jobRunId, type: job.type, attempt });
   const started = performance.now();
+  // Số lần job đã tự hoãn (DeferredJobError): không tính vào MAX_ATTEMPTS.
+  const [current] = await db.select({ metrics: jobRuns.metrics }).from(jobRuns).where(where);
+  const deferrals = Number((current?.metrics as { deferrals?: number } | null)?.deferrals ?? 0);
+  const failures = attempt - deferrals;
 
   try {
     const extendLock = (seconds: number) => retryJobIn(db, msgId, seconds);
@@ -56,13 +61,19 @@ export async function processOne(db: Db): Promise<boolean> {
     log("job.succeeded", { jobRunId: job.jobRunId, type: job.type, durationMs });
   } catch (error) {
     const message = errorMessage(error);
-    const permanent = error instanceof PermanentJobError || attempt >= MAX_ATTEMPTS;
+    if (error instanceof DeferredJobError) {
+      await db.update(jobRuns).set({ status: "queued", error: message, metrics: { deferrals: deferrals + 1 } }).where(where);
+      await retryJobIn(db, msgId, error.seconds);
+      log("job.deferred", { jobRunId: job.jobRunId, type: job.type, seconds: error.seconds, reason: message });
+      return true;
+    }
+    const permanent = error instanceof PermanentJobError || failures >= MAX_ATTEMPTS;
     if (permanent) {
       await db.update(jobRuns).set({ status: "failed", finishedAt: new Date(), error: message }).where(where);
       await archiveJob(db, msgId);
       log("job.failed", { jobRunId: job.jobRunId, type: job.type, attempt, error: message });
     } else {
-      const retryIn = RETRY_BASE_SECONDS * 2 ** (attempt - 1);
+      const retryIn = RETRY_BASE_SECONDS * 2 ** (failures - 1);
       await db.update(jobRuns).set({ status: "queued", error: message }).where(where);
       await retryJobIn(db, msgId, retryIn);
       log("job.retry", { jobRunId: job.jobRunId, type: job.type, attempt, retryIn, error: message });
