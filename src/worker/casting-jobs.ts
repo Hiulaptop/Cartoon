@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, inArray } from "drizzle-orm";
 
-import { getDb } from "@/lib/db/client";
+import { getDb, type Db } from "@/lib/db/client";
 import { assetProposals, assets, assetVariants, validations, videos } from "@/lib/db/schema";
 import { checkCasting } from "@/lib/casting/check";
 import { castingMessages } from "@/lib/casting/prompts";
@@ -60,7 +60,8 @@ export async function proposeCasting(payload: JobPayload) {
   const inFlight = new Set(busy.map((b) => `${nameById.get(b.assetId)}.${b.state}`));
   const { result, issues } = checkCasting(parsed.data, { catalog, inFlight });
 
-  // Ghi đề xuất trước, đẩy job sau: job sinh ảnh dựa vào hàng assets do chính nó tạo, không phụ thuộc bảng này.
+  // Ghi đề xuất và đẩy job trong cùng transaction: worker chết giữa chừng thì không có đề xuất nào thiếu job
+  // (lần thử lại thấy đã có đề xuất sẽ bỏ qua). enqueueJob mở transaction lồng = savepoint của Drizzle.
   const jobs: { type: "asset.generate_base" | "asset.generate_variant"; payload: JobPayload; assetId: string }[] = [];
   await db.transaction(async (tx) => {
     for (const a of result.newAssets) {
@@ -89,8 +90,8 @@ export async function proposeCasting(payload: JobPayload) {
       verdict: issues.length ? "fail" : "pass",
       feedback: issues.join("\n"),
     });
+    for (const j of jobs) await enqueueJob(j.type, j.payload, { type: "asset", id: j.assetId }, tx as unknown as Db);
   });
-  for (const j of jobs) await enqueueJob(j.type, j.payload, { type: "asset", id: j.assetId });
 
   return {
     model: res.model,
