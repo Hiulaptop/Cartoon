@@ -65,3 +65,7 @@ npm run job -- system.ping  # đẩy job từ dòng lệnh
 | `src/worker/` | Tiến trình worker và handler từng loại job |
 | `drizzle/` | File migration SQL (commit vào repo) |
 | `scripts/spikes/` | Code thử nghiệm M0, không dùng trong app |
+
+## Render (M6)
+
+Image worker có Chrome Headless Shell cho Remotion nên lớn hơn (khoảng 1.8 GB) và lần `docker compose build` đầu lâu hơn.
