@@ -39,9 +39,11 @@ export function CreateVideoForm({ projectId, series }: { projectId: string; seri
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="projectId" value={projectId} />
+      {/* Giá trị gửi qua input ẩn: React 19 gọi form.reset() sau action lỗi, làm DOM của select lệch khỏi state. */}
+      <input type="hidden" name="seriesId" value={seriesId} />
       <label className="flex flex-col gap-1 text-sm">
         Bộ phim
-        <select name="seriesId" value={seriesId} onChange={(e) => setSeriesId(e.target.value)} className={fieldClass}>
+        <select value={seriesId} onChange={(e) => setSeriesId(e.target.value)} className={fieldClass}>
           {series.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}

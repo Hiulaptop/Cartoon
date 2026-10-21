@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
 import { SuggestButton, UploadForm, type Suggestion } from "@/components/upload/upload-form";
+import { YoutubeStatusCard } from "@/components/upload/youtube-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/lib/db/client";
 import { jobRuns, renders, uploads, videos } from "@/lib/db/schema";
@@ -35,6 +36,7 @@ export default async function UploadVideoPage({ params }: { params: Promise<{ id
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <AutoRefresh active={busy} />
+      <YoutubeStatusCard />
       <div>
       </div>
 

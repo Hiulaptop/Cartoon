@@ -2,8 +2,13 @@ import Link from "next/link";
 
 import { JobButtons } from "@/components/job-buttons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDb } from "@/lib/db/client";
+import { videos } from "@/lib/db/schema";
 import { PIPELINE_STEPS } from "@/lib/pipeline/steps";
+import { agreementRate } from "@/lib/scene/queries";
+import { listSeries } from "@/lib/series/queries";
 import { getSystemStatus, type Check } from "@/lib/system/status";
+import { desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +25,12 @@ function StatusRow({ label, check }: { label: string; check: Check }) {
 
 export default async function Home() {
   const status = await getSystemStatus();
+  // Phần dữ liệu không được làm hỏng trang khi DB lỗi (khối Hệ thống đã báo lỗi DB).
+  const [seriesList, recent, rate] = await Promise.all([
+    listSeries().catch(() => []),
+    getDb().select().from(videos).orderBy(desc(videos.createdAt)).limit(5).catch(() => []),
+    agreementRate().catch(() => ({ agree: 0, total: 0 })),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -52,28 +63,66 @@ export default async function Home() {
         </Card>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <Link href="/series" className="hover:underline">
+                Bộ phim
+              </Link>
+            </CardTitle>
+            <CardDescription>Bước 1: asset của từng bộ phim</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1 text-sm">
+            {seriesList.length === 0 && <span className="text-muted-foreground">Chưa có bộ phim.</span>}
+            {seriesList.slice(0, 5).map((s) => (
+              <Link key={s.id} href={`/series/${s.id}`} className="hover:underline">
+                {s.name} <span className="text-muted-foreground">· {s.assetCount} asset</span>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <Link href="/projects" className="hover:underline">
+                Bản thiết kế gần đây
+              </Link>
+            </CardTitle>
+            <CardDescription>Bước 2–7 nằm trong từng bản thiết kế</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1 text-sm">
+            {recent.length === 0 && <span className="text-muted-foreground">Chưa có bản thiết kế.</span>}
+            {recent.map((v) => (
+              <Link key={v.id} href={`/designs/${v.id}`} className="hover:underline">
+                {v.title}
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Đồng thuận giám khảo – người</CardTitle>
+            <CardDescription>Cảnh mà kết luận giám khảo trùng quyết định của bạn (spec §6)</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {rate.total === 0 ? "Chưa có dữ liệu." : `${rate.agree}/${rate.total} (${Math.round((rate.agree / rate.total) * 100)}%)`}
+          </CardContent>
+        </Card>
+      </div>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Quy trình 7 bước</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PIPELINE_STEPS.map((step) => (
-            <Card key={step.number} className={step.href ? undefined : "opacity-60"}>
+            <Card key={step.number} className={step.hidden ? "opacity-60" : undefined}>
               <CardHeader>
                 <CardTitle>
-                  {step.href ? (
-                    <Link href={step.href} className="hover:underline">
-                      {step.number}. {step.title}
-                    </Link>
-                  ) : (
-                    <>
-                      {step.number}. {step.title}
-                    </>
-                  )}
+                  {step.number}. {step.title}
                 </CardTitle>
                 <CardDescription>{step.description}</CardDescription>
               </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">
-                {step.href ? "Đang dùng được" : step.hidden ? "Tạm ẩn" : `Có từ mốc ${step.milestone}`}
-              </CardContent>
+              <CardContent className="text-xs text-muted-foreground">{step.where}</CardContent>
             </Card>
           ))}
         </div>
