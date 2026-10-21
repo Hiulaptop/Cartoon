@@ -75,7 +75,7 @@ Image worker có Chrome Headless Shell cho Remotion nên lớn hơn (khoảng 1.
 1. Trên Google Cloud Console: bật **YouTube Data API v3**, tạo màn hình đồng ý OAuth loại External ở trạng thái **Testing** và thêm tài khoản chủ kênh làm test user, rồi tạo OAuth client loại **Desktop app**.
 2. Điền `YOUTUBE_OAUTH_CLIENT_ID` và `YOUTUBE_OAUTH_CLIENT_SECRET` vào `.env`.
 3. Chạy `npm run youtube:auth`, đăng nhập tài khoản chủ kênh và cho phép. Lệnh tự ghi `YOUTUBE_REFRESH_TOKEN` vào `.env` (không in ra).
-4. Project ở trạng thái Testing thì refresh token **hết hạn sau 7 ngày**: chạy lại bước 3 mỗi tuần. Trang `/upload` cảnh báo từ ngày thứ 6.
+4. Project ở trạng thái Testing thì refresh token **hết hạn sau 7 ngày**: chạy lại bước 3 mỗi tuần. Tab Upload của mỗi bản thiết kế cảnh báo từ ngày thứ 6.
 5. Video mặc định upload ở chế độ riêng tư; muốn công khai phải tick ô xác nhận trên trang upload.
 
 ## Publish qua cartoon.studev.net (Cloudflare Tunnel)
@@ -93,3 +93,10 @@ Cài đặt một lần:
 3. Đặt `COMPOSE_PROFILES=publish` rồi `docker compose up -d`. Muốn tắt tunnel: đặt lại rỗng và `docker compose up -d --remove-orphans`.
 
 **Cảnh báo:** app không có đăng nhập. Khi publish, bất kỳ ai biết URL đều tạo được asset (tốn credit model), duyệt nội dung và upload lên kênh YouTube đã kết nối. Nên đặt Cloudflare Access trước hostname này, hoặc chỉ bật publish khi cần.
+
+## Cách dùng (bộ phim, project, bản thiết kế)
+
+1. **Bộ phim** (`/series`): tạo bộ phim, rồi tạo và duyệt nhân vật, bối cảnh, đạo cụ của bộ phim đó (bước 1).
+2. **Project** (`/projects`): thư mục lồng nhau tùy ý; trong một project bấm **Tạo bản thiết kế**.
+3. **Bản thiết kế** (`/designs/<id>`): chọn bộ phim (chỉ bộ phim có ít nhất 1 nhân vật và 1 bối cảnh đã duyệt), rồi làm lần lượt các tab Kịch bản, Phân cảnh và cảnh, Ghép video, Upload.
+4. **Sân thử JSON cảnh** (`/scenes/playground`): chọn bộ phim rồi thử khuôn JSON cảnh.
