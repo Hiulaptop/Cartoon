@@ -14,13 +14,13 @@ export type AssetOption = { name: string; displayName: string; kind: AssetKind }
 export type SeriesOption = { id: string; name: string; assets: AssetOption[] };
 
 // Checkbox asset của một bộ phim (mặc định tick hết). Dùng chung cho tạo design và viết kịch bản sau.
-export function AssetChecklist({ assets }: { assets: AssetOption[] }) {
+export function AssetChecklist({ assets, selected }: { assets: AssetOption[]; selected?: string[] }) {
   return (
     <fieldset className="flex flex-col gap-1 text-sm">
       <legend className="mb-1">Asset được dùng</legend>
       {assets.map((a) => (
         <label key={a.name} className="flex items-center gap-2">
-          <input type="checkbox" name="assetNames" value={a.name} defaultChecked />
+          <input type="checkbox" name="assetNames" value={a.name} defaultChecked={selected ? selected.includes(a.name) : true} />
           <span className="font-mono">{a.name}</span>
           <span className="text-muted-foreground">
             {a.displayName} · {KIND_LABELS[a.kind]}
@@ -63,10 +63,12 @@ export function CreateVideoForm({ projectId, series }: { projectId: string; seri
         Thời lượng mục tiêu (giây)
         <Input name="targetSeconds" type="number" min={30} max={600} defaultValue={90} className="w-32" />
       </label>
-      {current && <AssetChecklist key={current.id} assets={current.assets} />}
+      <p className="text-xs text-muted-foreground">
+        Sau khi tạo, AI đề xuất asset còn thiếu cho tập này ({current?.assets.length ?? 0} asset đã duyệt của bộ phim sẽ được cân nhắc dùng lại). Bạn duyệt xong mới viết kịch bản.
+      </p>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <Button type="submit" disabled={pending} className="self-start">
-        {pending ? "Đang gửi..." : "Tạo bản thiết kế và viết kịch bản"}
+        {pending ? "Đang gửi..." : "Tạo bản thiết kế"}
       </Button>
     </form>
   );

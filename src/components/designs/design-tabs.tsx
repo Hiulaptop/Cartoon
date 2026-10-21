@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 // Bước 3 (phân cảnh) và 4 (xem cảnh) nằm chung một trang, nên gộp thành một tab.
 const TABS = [
+  { suffix: "/casting", label: "Casting" },
   { suffix: "", label: "Kịch bản" },
   { suffix: "/storyboard", label: "Phân cảnh và cảnh" },
   { suffix: "/render", label: "Ghép video" },

@@ -11,7 +11,7 @@ import type { FormState } from "@/lib/form";
 const fieldClass = "rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm";
 
 // Design chưa có kịch bản: chọn asset của bộ phim rồi viết kịch bản v1.
-export function StartScriptForm({ videoId, assets }: { videoId: string; assets: AssetOption[] }) {
+export function StartScriptForm({ videoId, assets, selected, locked }: { videoId: string; assets: AssetOption[]; selected?: string[]; locked?: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(createScript, {});
   return (
     <form action={action} className="flex flex-col gap-3">
@@ -20,9 +20,10 @@ export function StartScriptForm({ videoId, assets }: { videoId: string; assets: 
         Thời lượng mục tiêu (giây)
         <Input name="targetSeconds" type="number" min={30} max={600} defaultValue={90} className="w-32" />
       </label>
-      <AssetChecklist assets={assets} />
+      <AssetChecklist assets={assets} selected={selected} />
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
-      <Button type="submit" disabled={pending} className="self-start">
+      {locked && <p className="text-sm text-muted-foreground">{locked}</p>}
+      <Button type="submit" disabled={pending || Boolean(locked)} className="self-start">
         Viết kịch bản
       </Button>
     </form>

@@ -2,12 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
-import { ChangeSeriesForm, StartScriptForm } from "@/components/designs/start-script";
 import { ScriptReview } from "@/components/videos/script-review";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadApprovedCatalog } from "@/lib/scene/catalog";
 import { scriptContentSchema } from "@/lib/script/schema";
-import { listSeries, readySeriesIds } from "@/lib/series/queries";
 import { getVideo } from "@/lib/video/queries";
 
 export const dynamic = "force-dynamic";
@@ -30,31 +27,20 @@ export default async function DesignScriptPage({ params }: { params: Promise<{ i
   if (!data) notFound();
   const { video, versions } = data;
   const busy = versions.some((v) => v.status === "generating");
-  // Chưa có kịch bản: cho chọn asset để viết, và cho đổi bộ phim (spec §3.3 mục 2).
-  const start =
-    versions.length === 0
-      ? await Promise.all([loadApprovedCatalog(video.seriesId), listSeries(), readySeriesIds()]).then(([catalog, all, ready]) => ({
-          assets: [...catalog.values()].map((a) => ({ name: a.name, displayName: a.displayName, kind: a.kind })),
-          series: all.filter((s) => ready.has(s.id) || s.id === video.seriesId).map((s) => ({ id: s.id, name: s.name })),
-        }))
-      : null;
 
   return (
     <div className="flex flex-col gap-6">
       <AutoRefresh active={busy} />
       {video.brief && <p className="text-sm text-muted-foreground">{video.brief}</p>}
 
-      {start && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Viết kịch bản</CardTitle>
-            <CardDescription>Chọn asset của bộ phim cho tập này. Đổi bộ phim chỉ làm được trước khi có kịch bản.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <ChangeSeriesForm videoId={video.id} current={video.seriesId} series={start.series} />
-            <StartScriptForm videoId={video.id} assets={start.assets} />
-          </CardContent>
-        </Card>
+      {versions.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Chưa có kịch bản. Duyệt hoặc bỏ các đề xuất asset rồi bấm &quot;Viết kịch bản&quot; ở{" "}
+          <Link href={`/designs/${video.id}/casting`} className="underline">
+            tab Casting
+          </Link>
+          .
+        </p>
       )}
 
       {versions.map((v, index) => {
