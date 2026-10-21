@@ -60,6 +60,7 @@ npm run job -- system.ping  # đẩy job từ dòng lệnh
 | `src/lib/ninerouter/` | Client 9router (chat, sinh ảnh) |
 | `src/lib/assets/` | Bước 1: chuẩn tên asset, tách nền ảnh, prompt |
 | `src/lib/scene/`, `src/remotion/` | Khuôn JSON cảnh, kiểm tra, component dựng hình |
+| `src/lib/script/` | Bước 2: khuôn kịch bản, combo, kiểm tra lớp 1 |
 | `src/lib/pipeline/steps.ts` | 7 bước quy trình, dùng cho menu và trang Tổng quan |
 | `src/worker/` | Tiến trình worker và handler từng loại job |
 | `drizzle/` | File migration SQL (commit vào repo) |
