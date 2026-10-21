@@ -7,6 +7,7 @@ import { generateScript } from "./script-jobs";
 import { generateScenes } from "./scene-jobs";
 import { renderVideo } from "./render-jobs";
 import { suggestMetadata, uploadYoutube } from "./upload-jobs";
+import { proposeCasting } from "./casting-jobs";
 import { PermanentJobError, type JobHandler } from "./job-types";
 
 export { PermanentJobError };
@@ -44,4 +45,5 @@ export const handlers: Record<JobType, JobHandler> = {
   "video.render": renderVideo,
   "upload.youtube": uploadYoutube,
   "upload.suggest_metadata": suggestMetadata,
+  "casting.propose": proposeCasting,
 };

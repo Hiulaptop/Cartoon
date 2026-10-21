@@ -5,6 +5,7 @@ import { scripts, validations, videos } from "@/lib/db/schema";
 import { extractJson } from "@/lib/llm/json";
 import { chat, requireModel } from "@/lib/ninerouter/client";
 import type { JobPayload } from "@/lib/queue/jobs";
+import { openProposalCount } from "@/lib/casting/queries";
 import { loadApprovedCatalog } from "@/lib/scene/catalog";
 import { checkScript } from "@/lib/script/check";
 import { ensureDefaultCombo } from "@/lib/script/combo";
@@ -29,6 +30,9 @@ export async function generateScript(payload: JobPayload) {
   const [video] = await db.select().from(videos).where(eq(videos.id, row.videoId)).limit(1);
   if (!video) throw new PermanentJobError("Không có video của kịch bản này");
 
+  // Cổng casting (spec ai-casting §3): không viết khi còn đề xuất asset chưa duyệt hoặc chưa bỏ.
+  const open = await openProposalCount(video.id);
+  if (open > 0) throw new PermanentJobError(`Còn ${open} đề xuất asset chưa duyệt hoặc chưa bỏ`);
   const catalog = await loadApprovedCatalog(video.seriesId);
   const missing = meta.assetNames.filter((n) => !catalog.has(n));
   if (missing.length) throw new PermanentJobError(`Asset chưa duyệt hoặc không tồn tại: ${missing.join(", ")}`);
