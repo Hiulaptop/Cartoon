@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env src/lib/db/migrate.ts",
     "worker": "tsx --env-file=.env src/worker/index.ts",
-    "job": "tsx --env-file=.env src/worker/enqueue.ts"
+    "job": "tsx --env-file=.env src/worker/enqueue.ts",
+    "youtube:auth": "node --env-file=.env scripts/youtube-auth.mjs"
   },
   "dependencies": {
     "@langchain/core": "1.2.19",
@@ -23,6 +24,7 @@
     "cn": "^0.5.0",
     "drizzle-orm": "^0.45.4",
     "geist": "^1.8.1",
+    "googleapis": "187.0.0",
     "lucide-react": "^1.60.0",
     "next": "15.5.28",
     "pg": "^8.23.1",
