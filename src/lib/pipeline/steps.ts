@@ -12,7 +12,7 @@ export type PipelineStep = {
 
 export const PIPELINE_STEPS: readonly PipelineStep[] = [
   { number: 1, title: "Assets", description: "Sinh và duyệt nhân vật, bối cảnh, đạo cụ", milestone: "M2", href: "/assets" },
-  { number: 2, title: "Kịch bản", description: "Viết kịch bản, thả miếng hài", milestone: "M4" },
+  { number: 2, title: "Kịch bản", description: "Viết kịch bản, thả miếng hài", milestone: "M4", href: "/videos" },
   { number: 3, title: "Phân cảnh", description: "Viết JSON phân cảnh, giám khảo chấm", milestone: "M5" },
   { number: 4, title: "Sinh cảnh", description: "Xem trước cảnh bằng Remotion", milestone: "M3", href: "/scenes" },
   { number: 5, title: "Âm thanh", description: "Tạm ẩn, lồng tiếng làm sau", milestone: "Sau lát cắt đầu", hidden: true },
