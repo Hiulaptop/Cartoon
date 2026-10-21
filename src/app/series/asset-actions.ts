@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { assetNameError, isAllowedState, isAssetKind } from "@/lib/assets/naming";
 import { getDb } from "@/lib/db/client";
 import { assets, assetVariants, reviews } from "@/lib/db/schema";
+import { resolveProposalsAfterApproval } from "@/lib/casting/queries";
 import { enqueueJob } from "@/lib/queue/jobs";
 
 import type { FormState } from "@/lib/form";
@@ -18,6 +19,8 @@ async function refreshAsset(assetId: string) {
   if (!owner) return;
   revalidatePath(`/series/${owner.seriesId}/assets/${assetId}`);
   revalidatePath(`/series/${owner.seriesId}`);
+  // Asset có thể đang được duyệt từ tab Casting của một design.
+  revalidatePath("/designs", "layout");
 }
 
 function field(form: FormData, key: string): string {
@@ -67,6 +70,8 @@ export async function approveVariant(_prev: FormState, form: FormData): Promise<
 
   await db.update(assetVariants).set({ status: "approved" }).where(eq(assetVariants.id, variant.id));
   await db.insert(reviews).values({ targetType: "asset_variant", targetId: variant.id, decision: "approved" });
+  // Đề xuất casting khớp chuyển sang approved; duyệt ảnh gốc thì sinh các biến thể đang chờ (spec ai-casting §3).
+  await resolveProposalsAfterApproval(asset.id, variant.state);
   await refreshAsset(asset.id);
   return {};
 }

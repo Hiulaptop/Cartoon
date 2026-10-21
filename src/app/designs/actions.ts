@@ -1,12 +1,13 @@
 "use server";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { FormState } from "@/lib/form";
 import { getDb } from "@/lib/db/client";
-import { reviews, scripts, videos } from "@/lib/db/schema";
+import { assetProposals, jobRuns, reviews, scripts, videos } from "@/lib/db/schema";
+import { dropProposalById, openProposalCount } from "@/lib/casting/queries";
 import { enqueueJob } from "@/lib/queue/jobs";
 import { loadApprovedCatalog } from "@/lib/scene/catalog";
 import { ensureDefaultCombo } from "@/lib/script/combo";
@@ -39,29 +40,26 @@ async function pickAssets(seriesId: string, names: string[]): Promise<{ chosen: 
   return { chosen };
 }
 
-// Tạo design. Có `assetNames` thì viết kịch bản ngay; không có thì chỉ tạo design (chọn asset sau ở trang design).
+// Tạo design ở pha casting: AI đề xuất asset trước, người duyệt xong mới viết kịch bản (spec ai-casting).
 export async function createDesign(_prev: FormState, form: FormData): Promise<FormState> {
   const projectId = text(form, "projectId");
   const seriesId = text(form, "seriesId");
   const title = text(form, "title");
   const brief = text(form, "brief");
   const targetSeconds = Number(text(form, "targetSeconds"));
-  const assetNames = form.getAll("assetNames").filter((v): v is string => typeof v === "string");
   if (title.length < 3) return { error: "Tiêu đề ít nhất 3 ký tự" };
   if (!projectId) return { error: "Thiếu project" };
   if (!seriesId) return { error: "Chọn bộ phim" };
   if (!Number.isInteger(targetSeconds) || targetSeconds < 30 || targetSeconds > 600) return { error: TARGET_RANGE };
-  const picked = assetNames.length ? await pickAssets(seriesId, assetNames) : null;
-  if (picked && "error" in picked) return { error: picked.error };
 
   const combo = await ensureDefaultCombo();
   const [video] = await getDb()
     .insert(videos)
-    .values({ title, brief, comboId: combo.id, seriesId, projectId })
+    .values({ title, brief, comboId: combo.id, seriesId, projectId, status: "casting" })
     .returning({ id: videos.id });
-  if (picked) await startScriptVersion(video.id, { assetNames: picked.chosen, targetSeconds });
+  await enqueueJob("casting.propose", { videoId: video.id, targetSeconds }, { type: "video", id: video.id });
   revalidatePath(`/projects/${projectId}`);
-  redirect(`/designs/${video.id}`);
+  redirect(`/designs/${video.id}/casting`);
 }
 
 // Design chưa có kịch bản: chọn asset và thời lượng rồi viết kịch bản v1.
@@ -75,8 +73,12 @@ export async function createScript(_prev: FormState, form: FormData): Promise<Fo
   if (!video) return { error: "Không có design này" };
   const [existing] = await db.select({ id: scripts.id }).from(scripts).where(eq(scripts.videoId, videoId)).limit(1);
   if (existing) return { error: "Design đã có kịch bản" };
+  // Cổng casting (spec ai-casting §3).
+  const open = await openProposalCount(videoId);
+  if (open > 0) return { error: `Còn ${open} đề xuất asset chưa duyệt hoặc chưa bỏ` };
   const picked = await pickAssets(video.seriesId, assetNames);
   if ("error" in picked) return { error: picked.error };
+  await db.update(videos).set({ status: "scripting" }).where(eq(videos.id, videoId));
   await startScriptVersion(videoId, { assetNames: picked.chosen, targetSeconds });
   revalidatePath(`/designs/${videoId}`);
   return {};
@@ -89,8 +91,37 @@ export async function changeDesignSeries(_prev: FormState, form: FormData): Prom
   const db = getDb();
   const [existing] = await db.select({ id: scripts.id }).from(scripts).where(eq(scripts.videoId, videoId)).limit(1);
   if (existing) return { error: "Design đã có kịch bản, không đổi được bộ phim" };
+  // Đề xuất casting thuộc bộ phim cũ: đã có đề xuất thì không đổi được.
+  const [proposal] = await db.select({ id: assetProposals.id }).from(assetProposals).where(eq(assetProposals.videoId, videoId)).limit(1);
+  if (proposal) return { error: "Design đã có đề xuất asset của bộ phim hiện tại, không đổi được bộ phim" };
   await db.update(videos).set({ seriesId }).where(eq(videos.id, videoId));
-  revalidatePath(`/designs/${videoId}`);
+  await enqueueJob("casting.propose", { videoId }, { type: "video", id: videoId });
+  revalidatePath(`/designs/${videoId}`, "layout");
+  return {};
+}
+
+export async function dropProposal(_prev: FormState, form: FormData): Promise<FormState> {
+  const dropped = await dropProposalById(text(form, "proposalId"));
+  if (!dropped) return { error: "Đề xuất không còn mở" };
+  revalidatePath(`/designs/${dropped.videoId}/casting`);
+  return {};
+}
+
+// Chạy lại casting khi lượt trước thất bại và chưa có đề xuất nào.
+export async function retryCasting(_prev: FormState, form: FormData): Promise<FormState> {
+  const videoId = text(form, "videoId");
+  const db = getDb();
+  const [proposal] = await db.select({ id: assetProposals.id }).from(assetProposals).where(eq(assetProposals.videoId, videoId)).limit(1);
+  if (proposal) return { error: "Design đã có đề xuất" };
+  const [last] = await db
+    .select({ status: jobRuns.status })
+    .from(jobRuns)
+    .where(and(eq(jobRuns.jobType, "casting.propose"), eq(jobRuns.targetId, videoId)))
+    .orderBy(desc(jobRuns.createdAt))
+    .limit(1);
+  if (last && last.status !== "failed") return { error: "Lượt đề xuất trước chưa thất bại" };
+  await enqueueJob("casting.propose", { videoId }, { type: "video", id: videoId });
+  revalidatePath(`/designs/${videoId}/casting`);
   return {};
 }
 
