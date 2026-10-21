@@ -21,7 +21,8 @@ export async function getCasting(videoId: string) {
     .select()
     .from(assetProposals)
     .where(eq(assetProposals.videoId, videoId))
-    .orderBy(asc(assetProposals.createdAt), asc(assetProposals.state));
+    // Cùng transaction nên created_at trùng: xếp theo asset, đề xuất ảnh gốc ("asset") trước biến thể.
+    .orderBy(asc(assetProposals.createdAt), asc(assetProposals.assetId), asc(assetProposals.kind), asc(assetProposals.state));
   const assetIds = [...new Set(proposals.map((p) => p.assetId))];
   const [assetRows, variantRows] = assetIds.length
     ? await Promise.all([
