@@ -22,6 +22,13 @@
       "when": 1792574419748,
       "tag": "0002_series_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792601584779,
+      "tag": "0003_ai_casting",
+      "breakpoints": true
     }
   ]
 }

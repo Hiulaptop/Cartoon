@@ -28,6 +28,8 @@ export const reviewStatus = pgEnum("review_status", [
 export const assetKind = pgEnum("asset_kind", ["chr", "bg", "prop", "fx"]);
 // Video đang ở bước nào của quy trình.
 export const videoStatus = pgEnum("video_status", [
+  // AI đề xuất asset, chờ người duyệt (spec ai-casting).
+  "casting",
   "scripting",
   "storyboarding",
   "rendering",
@@ -164,6 +166,7 @@ export const videos = pgTable("videos", {
   title: text("title").notNull(),
   brief: text("brief").notNull().default(""),
   comboId: uuid("combo_id").references(() => combos.id, { onDelete: "set null" }),
+  // Mặc định giữ "scripting": Postgres cấm dùng giá trị enum mới thêm trong cùng transaction migration; app tự đặt "casting".
   status: videoStatus("status").notNull().default("scripting"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -268,6 +271,29 @@ export const uploads = pgTable("uploads", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+export const proposalKind = pgEnum("proposal_kind", ["asset", "variant"]);
+export const proposalDecision = pgEnum("proposal_decision", ["open", "approved", "dropped"]);
+
+// Đề xuất asset/biến thể của AI cho một design (spec ai-casting §4.2). Duyệt ảnh vẫn ở assets/asset_variants.
+export const assetProposals = pgTable(
+  "asset_proposals",
+  {
+    id: id(),
+    videoId: uuid("video_id")
+      .notNull()
+      .references(() => videos.id, { onDelete: "cascade" }),
+    kind: proposalKind("kind").notNull(),
+    // Asset mới: id tạo trước, hàng assets chỉ có khi job sinh xong nên không có khóa ngoại.
+    assetId: uuid("asset_id").notNull(),
+    state: text("state").notNull(),
+    brief: text("brief").notNull().default(""),
+    reason: text("reason").notNull(),
+    decision: proposalDecision("decision").notNull().default("open"),
+    createdAt: createdAt(),
+  },
+  (t) => [unique("asset_proposals_video_asset_state").on(t.videoId, t.assetId, t.state)],
+);
 
 export const jobRuns = pgTable(
   "job_runs",
