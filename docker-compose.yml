@@ -17,6 +17,7 @@ x-runtime-env: &runtime-env
   NINE_ROUTER_API_KEY: ${NINE_ROUTER_API_KEY:-}
   LLM_WRITER_MODEL: ${LLM_WRITER_MODEL:-}
   LLM_JUDGE_MODEL: ${LLM_JUDGE_MODEL:-}
+  LLM_JUDGE_ALLOW_SAME_FAMILY: ${LLM_JUDGE_ALLOW_SAME_FAMILY:-}
   IMAGE_MODEL: ${IMAGE_MODEL:-}
 
 # App và worker dùng chung ./data (ảnh, video) và ./certs (CA cert của Supabase, nếu cần).
