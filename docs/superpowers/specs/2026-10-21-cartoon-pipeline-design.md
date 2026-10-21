@@ -206,6 +206,7 @@ Kết quả M0 có thể làm đổi thiết kế; khi đó cập nhật spec n�
 - **Render (số đo M0):** 90 s video 1080p render trong 25.1 s trên Docker VM 20 CPU; ước lượng 100 video × 5 phút ≈ 2.3 giờ tuần tự. Render cục bộ đủ cho giai đoạn đầu; chỉ xét render trên cloud khi số đo thực tế với cảnh nhiều lớp vượt khả năng máy.
 - **Router của người vận hành hiện chưa có tính năng sinh video.** Không ảnh hưởng, vì đã chọn chỉ dùng Remotion.
 - **Không có đăng nhập:** app chỉ mở trên `127.0.0.1`. Không đưa lên mạng công khai khi chưa thêm đăng nhập.
+- **Ngoại lệ do người dùng chọn (2026-10-21):** có chế độ publish qua Cloudflare Tunnel (`cartoon.studev.net`) **không có lớp đăng nhập**. Rủi ro: ai biết URL đều tạo asset (tốn credit), duyệt và upload YouTube. Cách giảm khuyến nghị: Cloudflare Access trước hostname, hoặc chỉ bật khi cần.
 
 ## 14. Nguồn đã dùng
 

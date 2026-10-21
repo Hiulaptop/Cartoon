@@ -77,3 +77,19 @@ Image worker có Chrome Headless Shell cho Remotion nên lớn hơn (khoảng 1.
 3. Chạy `npm run youtube:auth`, đăng nhập tài khoản chủ kênh và cho phép. Lệnh tự ghi `YOUTUBE_REFRESH_TOKEN` vào `.env` (không in ra).
 4. Project ở trạng thái Testing thì refresh token **hết hạn sau 7 ngày**: chạy lại bước 3 mỗi tuần. Trang `/upload` cảnh báo từ ngày thứ 6.
 5. Video mặc định upload ở chế độ riêng tư; muốn công khai phải tick ô xác nhận trên trang upload.
+
+## Publish qua cartoon.studev.net (Cloudflare Tunnel)
+
+Hai chế độ, chọn bằng `COMPOSE_PROFILES` trong `.env`:
+
+| Chế độ | `.env` | `docker compose up -d` |
+|---|---|---|
+| Dev (mặc định) | `COMPOSE_PROFILES=` | Chỉ chạy migrate, app, worker. App chỉ mở ở `127.0.0.1`. |
+| Publish | `COMPOSE_PROFILES=publish` | Chạy thêm service `tunnel` (cloudflared) đưa app ra `https://cartoon.studev.net`. |
+
+Cài đặt một lần:
+1. Cloudflare Zero Trust > Networks > Tunnels: tạo tunnel kiểu cloudflared (remotely-managed), chép token vào `TUNNEL_TOKEN` trong `.env`.
+2. Trong tunnel, thêm **Public hostname**: `cartoon.studev.net`, service `HTTP` `app:3000` (tên service trong mạng compose).
+3. Đặt `COMPOSE_PROFILES=publish` rồi `docker compose up -d`. Muốn tắt tunnel: đặt lại rỗng và `docker compose up -d --remove-orphans`.
+
+**Cảnh báo:** app không có đăng nhập. Khi publish, bất kỳ ai biết URL đều tạo được asset (tốn credit model), duyệt nội dung và upload lên kênh YouTube đã kết nối. Nên đặt Cloudflare Access trước hostname này, hoặc chỉ bật publish khi cần.
