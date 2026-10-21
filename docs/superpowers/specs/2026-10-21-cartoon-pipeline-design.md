@@ -192,11 +192,11 @@ Kết quả M0 có thể làm đổi thiết kế; khi đó cập nhật spec n�
 | Model `ag/gemini-3.1-flash-image` có nhận ảnh tham chiếu và cho nền trong suốt không | M0 |
 | Supabase có cho bật `pgmq`; loại chuỗi kết nối phù hợp cho `pgmq` và `PostgresSaver` | M0 / M1 |
 | Công cụ ORM và migration | Đã xác minh: Drizzle 0.45.4 + drizzle-kit 0.31.11 (M1) |
-| Ngưỡng tốc độ đọc phụ đề | M4 |
-| Nguyên văn định nghĩa TV Parental Guidelines từ trang chính thức (hiện mới có nguồn thứ cấp) | M5 |
-| `videos.insert` bắt buộc OAuth; kiểm tra lại nguyên văn quota (đã đọc qua công cụ tóm tắt) | M7 |
+| Ngưỡng tốc độ đọc phụ đề | **Đã xác minh (M4):** Netflix English Timed Text Style Guide: 20 ký tự/giây (người lớn), 42 ký tự/dòng, 2 dòng, 5/6–7 giây; dùng mức người lớn cho khán giả 14–18 |
+| Nguyên văn định nghĩa TV Parental Guidelines từ trang chính thức (hiện mới có nguồn thứ cấp) | **Đã xác minh (M5)** qua bản FCC Public Notice FCC 97-321 (tvguidelines.org trả 404); nguyên văn TV-14 và D/L/S/V nằm trong `src/lib/judge/rubric.ts` |
+| `videos.insert` bắt buộc OAuth; kiểm tra lại nguyên văn quota (đã đọc qua công cụ tóm tắt) | **Đã đọc nguyên văn (M7):** 100 lượt `videos.insert`/ngày/project, upload từ project chưa xác minh không bị ép riêng tư, `privacyStatus` bỏ trống thì mặc định public. **Còn mở:** múi giờ reset hạn mức; độ nhạy scope `youtube.upload`; tin đồn 1600 đơn vị/lần (nguồn bên thứ ba) chưa kiểm chứng; upload thật chưa chạy (chờ credential) |
 | Cách ACE lọc trùng mục (embedding?); API số liệu xem YouTube | Spec ACE |
-| Remotion và Next.js dùng chung phiên bản React 19 | M3 |
+| Remotion và Next.js dùng chung phiên bản React 19 | **Đã xác minh (M3):** Player chạy dưới Next 15.5 + Turbopack (dev và build) |
 
 ## 13. Rủi ro và lưu ý
 
