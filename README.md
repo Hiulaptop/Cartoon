@@ -98,5 +98,5 @@ Cài đặt một lần:
 
 1. **Bộ phim** (`/series`): tạo bộ phim, rồi tạo và duyệt nhân vật, bối cảnh, đạo cụ của bộ phim đó (bước 1).
 2. **Project** (`/projects`): thư mục lồng nhau tùy ý; trong một project bấm **Tạo bản thiết kế**.
-3. **Bản thiết kế** (`/designs/<id>`): chọn bộ phim (chỉ bộ phim có ít nhất 1 nhân vật và 1 bối cảnh đã duyệt), rồi làm lần lượt các tab Kịch bản, Phân cảnh và cảnh, Ghép video, Upload.
+3. **Bản thiết kế** (`/designs/<id>`): chọn bộ phim (chỉ bộ phim có ít nhất 1 nhân vật và 1 bối cảnh đã duyệt). Tab **Casting**: AI đề xuất asset mới và biến thể còn thiếu, ảnh được sinh tự động; bạn duyệt, loại (sinh lại) hoặc bỏ từng đề xuất, xong hết mới bấm "Viết kịch bản". Sau đó làm lần lượt các tab Kịch bản, Phân cảnh và cảnh, Ghép video, Upload.
 4. **Sân thử JSON cảnh** (`/scenes/playground`): chọn bộ phim rồi thử khuôn JSON cảnh.
