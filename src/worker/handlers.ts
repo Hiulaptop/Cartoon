@@ -3,6 +3,7 @@ import type { JobType } from "@/lib/queue/jobs";
 import { writeDataFile } from "@/lib/storage";
 
 import { generateBase, generateVariant } from "./asset-jobs";
+import { generateScript } from "./script-jobs";
 import { PermanentJobError, type JobHandler } from "./job-types";
 
 export { PermanentJobError };
@@ -35,4 +36,5 @@ export const handlers: Record<JobType, JobHandler> = {
   // Bước 1 (M2): asset.
   "asset.generate_base": generateBase,
   "asset.generate_variant": generateVariant,
+  "script.generate": generateScript,
 };
