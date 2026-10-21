@@ -1,6 +1,6 @@
 import type { JobPayload } from "@/lib/queue/jobs";
 
-export type JobContext = { jobRunId: string; attempt: number };
+export type JobContext = { jobRunId: string; attempt: number; extendLock: (seconds: number) => Promise<void> };
 // Giá trị trả về được ghi vào job_runs.metrics.
 export type JobHandler = (payload: JobPayload, ctx: JobContext) => Promise<Record<string, unknown> | void>;
 

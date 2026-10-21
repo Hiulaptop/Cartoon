@@ -45,7 +45,8 @@ export async function processOne(db: Db): Promise<boolean> {
   const started = performance.now();
 
   try {
-    const metrics = (await handlers[job.type](job.payload, { jobRunId: job.jobRunId, attempt })) ?? {};
+    const extendLock = (seconds: number) => retryJobIn(db, msgId, seconds);
+    const metrics = (await handlers[job.type](job.payload, { jobRunId: job.jobRunId, attempt, extendLock })) ?? {};
     const durationMs = Math.round(performance.now() - started);
     await db
       .update(jobRuns)
