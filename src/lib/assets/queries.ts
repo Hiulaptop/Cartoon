@@ -6,9 +6,9 @@ import { assets, assetVariants, jobRuns } from "@/lib/db/schema";
 export type Asset = typeof assets.$inferSelect;
 export type AssetVariant = typeof assetVariants.$inferSelect;
 
-export async function listAssets() {
+export async function listAssets(seriesId: string) {
   const db = getDb();
-  const rows = await db.select().from(assets).orderBy(desc(assets.createdAt));
+  const rows = await db.select().from(assets).where(eq(assets.seriesId, seriesId)).orderBy(desc(assets.createdAt));
   const bases = rows.length
     ? await db
         .select()

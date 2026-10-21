@@ -21,11 +21,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 const UUID_RE = /^[0-9a-f-]{36}$/i;
 
-export default async function AssetPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  if (!UUID_RE.test(id)) notFound();
-  const data = await getAsset(id);
-  if (!data) notFound();
+export default async function AssetPage({ params }: { params: Promise<{ seriesId: string; assetId: string }> }) {
+  const { seriesId, assetId } = await params;
+  if (!UUID_RE.test(assetId)) notFound();
+  const data = await getAsset(assetId);
+  if (!data || data.asset.seriesId !== seriesId) notFound();
   const { asset, variants } = data;
   const busy = variants.some((v) => v.status === "generating" || v.status === "rejected");
   const missingStates = STATES_BY_KIND[asset.kind].filter((s) => s !== "base" && !variants.some((v) => v.state === s));
@@ -34,8 +34,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <AutoRefresh active={busy} />
       <div>
-        <Link href="/assets" className="text-sm text-muted-foreground hover:underline">
-          ← Assets
+        <Link href={`/series/${seriesId}`} className="text-sm text-muted-foreground hover:underline">
+          ← Bộ phim
         </Link>
         <h1 className="font-mono text-2xl font-semibold">{asset.name}</h1>
         <p className="text-sm text-muted-foreground">

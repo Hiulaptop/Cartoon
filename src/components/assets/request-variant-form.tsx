@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 
-import { requestVariant, type FormState } from "@/app/assets/actions";
+import { requestVariant } from "@/app/series/asset-actions";
+import type { FormState } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 
 export function RequestVariantForm({ assetId, states }: { assetId: string; states: readonly string[] }) {

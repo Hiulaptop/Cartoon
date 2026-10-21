@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { CreateAssetForm } from "@/components/assets/create-asset-form";
+import { SeriesSettings } from "@/components/series/series-forms";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { KIND_LABELS } from "@/lib/assets/naming";
 import { listAssets, listPendingAssetJobs, variantImageUrl } from "@/lib/assets/queries";
 import { errorMessage } from "@/lib/errors";
 import { timeAgo } from "@/lib/format";
+import { getSeries } from "@/lib/series/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +22,19 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Lỗi",
 };
 
-export default async function AssetsPage() {
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+
+// Bước 1 (assets) của một bộ phim.
+export default async function SeriesAssetsPage({ params }: { params: Promise<{ seriesId: string }> }) {
+  const { seriesId } = await params;
+  if (!UUID_RE.test(seriesId)) notFound();
+  const current = await getSeries(seriesId);
+  if (!current) notFound();
   let data: Awaited<ReturnType<typeof listAssets>> = [];
   let pending: Awaited<ReturnType<typeof listPendingAssetJobs>> = [];
   let loadError: string | null = null;
   try {
-    [data, pending] = await Promise.all([listAssets(), listPendingAssetJobs()]);
+    [data, pending] = await Promise.all([listAssets(seriesId), listPendingAssetJobs()]);
   } catch (error) {
     loadError = errorMessage(error);
   }
@@ -33,7 +43,14 @@ export default async function AssetsPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <AutoRefresh active={busy} />
-      <h1 className="text-2xl font-semibold">1. Assets</h1>
+      <div>
+        <Link href="/series" className="text-sm text-muted-foreground hover:underline">
+          ← Bộ phim
+        </Link>
+        <h1 className="text-2xl font-semibold">{current.name}</h1>
+        <p className="text-sm text-muted-foreground">Bước 1: nhân vật, bối cảnh, đạo cụ, hiệu ứng của bộ phim này.</p>
+      </div>
+      <SeriesSettings seriesId={seriesId} name={current.name} />
 
       <Card>
         <CardHeader>
@@ -43,7 +60,7 @@ export default async function AssetsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <CreateAssetForm />
+          <CreateAssetForm seriesId={seriesId} />
         </CardContent>
       </Card>
 
@@ -51,7 +68,7 @@ export default async function AssetsPage() {
 
       {pending.length > 0 && (
         <p className="text-sm text-muted-foreground">
-          {pending.length} asset đang được tạo (LLM và sinh ảnh mất khoảng 15–60 giây)…
+          {pending.length} asset đang được tạo trong toàn hệ thống (LLM và sinh ảnh mất khoảng 15–60 giây)…
         </p>
       )}
 
@@ -59,7 +76,7 @@ export default async function AssetsPage() {
         {data.map(({ asset, base }) => {
           const url = base ? variantImageUrl(base) : null;
           return (
-            <Link key={asset.id} href={`/assets/${asset.id}`}>
+            <Link key={asset.id} href={`/series/${seriesId}/assets/${asset.id}`}>
               <Card className="h-full transition-colors hover:bg-muted/50">
                 <div className="flex h-40 items-center justify-center bg-[repeating-conic-gradient(#e5e5e5_0%_25%,transparent_0%_50%)] bg-[length:16px_16px]">
                   {url ? (

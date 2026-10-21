@@ -2,18 +2,20 @@
 
 import { useActionState } from "react";
 
-import { createAsset, type FormState } from "@/app/assets/actions";
+import { createAsset } from "@/app/series/asset-actions";
+import type { FormState } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ASSET_KINDS, KIND_LABELS } from "@/lib/assets/naming";
 
 const fieldClass = "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm";
 
-export function CreateAssetForm() {
+export function CreateAssetForm({ seriesId }: { seriesId: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(createAsset, {});
 
   return (
     <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="seriesId" value={seriesId} />
       <label className="flex flex-col gap-1 text-sm">
         Loại
         <select name="kind" defaultValue="chr" className={fieldClass}>

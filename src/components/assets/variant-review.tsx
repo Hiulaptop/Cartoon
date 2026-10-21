@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 
-import { approveVariant, rejectVariant, retryVariant, type FormState } from "@/app/assets/actions";
+import { approveVariant, rejectVariant, retryVariant } from "@/app/series/asset-actions";
+import type { FormState } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

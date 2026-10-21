@@ -12,7 +12,13 @@ import { enqueueJob } from "@/lib/queue/jobs";
 
 import type { FormState } from "@/lib/form";
 
-export type { FormState } from "@/lib/form";
+// Làm mới trang bộ phim và trang asset sau khi asset đổi (đường dẫn phụ thuộc bộ phim của asset).
+async function refreshAsset(assetId: string) {
+  const [owner] = await getDb().select({ seriesId: assets.seriesId }).from(assets).where(eq(assets.id, assetId)).limit(1);
+  if (!owner) return;
+  revalidatePath(`/series/${owner.seriesId}/assets/${assetId}`);
+  revalidatePath(`/series/${owner.seriesId}`);
+}
 
 function field(form: FormData, key: string): string {
   const value = form.get(key);
@@ -23,13 +29,15 @@ export async function createAsset(_prev: FormState, form: FormData): Promise<For
   const kind = field(form, "kind");
   const brief = field(form, "brief");
   const displayName = field(form, "displayName");
+  const seriesId = field(form, "seriesId");
+  if (!seriesId) return { error: "Thiếu bộ phim" };
   if (!isAssetKind(kind)) return { error: "Chọn loại asset" };
   if (brief.length < 10) return { error: "Mô tả ngắn quá (ít nhất 10 ký tự)" };
   // assetId tạo trước để job chạy lại không tạo asset trùng.
   const assetId = randomUUID();
-  await enqueueJob("asset.generate_base", { assetId, kind, brief, displayName }, { type: "asset", id: assetId });
-  revalidatePath("/assets");
-  redirect("/assets");
+  await enqueueJob("asset.generate_base", { assetId, seriesId, kind, brief, displayName }, { type: "asset", id: assetId });
+  revalidatePath(`/series/${seriesId}`);
+  redirect(`/series/${seriesId}`);
 }
 
 export async function approveVariant(_prev: FormState, form: FormData): Promise<FormState> {
@@ -51,7 +59,7 @@ export async function approveVariant(_prev: FormState, form: FormData): Promise<
     const clash = await db
       .select({ id: assets.id })
       .from(assets)
-      .where(and(eq(assets.name, name), ne(assets.id, asset.id)))
+      .where(and(eq(assets.seriesId, asset.seriesId), eq(assets.name, name), ne(assets.id, asset.id)))
       .limit(1);
     if (clash.length) return { error: `Tên ${name} đã có asset khác dùng` };
     await db.update(assets).set({ name, displayName, description, status: "approved" }).where(eq(assets.id, asset.id));
@@ -59,8 +67,7 @@ export async function approveVariant(_prev: FormState, form: FormData): Promise<
 
   await db.update(assetVariants).set({ status: "approved" }).where(eq(assetVariants.id, variant.id));
   await db.insert(reviews).values({ targetType: "asset_variant", targetId: variant.id, decision: "approved" });
-  revalidatePath(`/assets/${asset.id}`);
-  revalidatePath("/assets");
+  await refreshAsset(asset.id);
   return {};
 }
 
@@ -81,7 +88,7 @@ export async function rejectVariant(_prev: FormState, form: FormData): Promise<F
     { assetId: variant.assetId, state: variant.state, feedback: reason },
     { type: "asset_variant", id: variant.id },
   );
-  revalidatePath(`/assets/${variant.assetId}`);
+  await refreshAsset(variant.assetId);
   return {};
 }
 
@@ -94,7 +101,7 @@ export async function requestVariant(_prev: FormState, form: FormData): Promise<
   if (asset.status !== "approved") return { error: "Duyệt ảnh gốc trước rồi mới sinh biến thể" };
   if (!isAllowedState(asset.kind, state) || state === "base") return { error: "Trạng thái không hợp lệ" };
   await enqueueJob("asset.generate_variant", { assetId, state }, { type: "asset", id: assetId });
-  revalidatePath(`/assets/${assetId}`);
+  await refreshAsset(assetId);
   return {};
 }
 
@@ -103,6 +110,6 @@ export async function retryVariant(_prev: FormState, form: FormData): Promise<Fo
   const assetId = field(form, "assetId");
   const state = field(form, "state");
   await enqueueJob("asset.generate_variant", { assetId, state }, { type: "asset", id: assetId });
-  revalidatePath(`/assets/${assetId}`);
+  await refreshAsset(assetId);
   return {};
 }
