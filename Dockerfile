@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 # Tải trình duyệt lúc build để lần render đầu không phải tải (cache trong /app/.remotion).
 RUN node -e "import('@remotion/renderer').then(m => m.ensureBrowser()).then(() => console.log('browser ok'))" \
- && chown -R node:node /app/.remotion
+ && mkdir -p /app/node_modules/.remotion \
+ && chown -R node:node /app/.remotion /app/node_modules/.remotion
 COPY package.json tsconfig.json ./
 COPY drizzle ./drizzle
 COPY src ./src

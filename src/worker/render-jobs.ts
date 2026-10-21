@@ -91,7 +91,8 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
       outputLocation: out,
       inputProps,
       chromiumOptions: { enableMultiProcessOnLinux: true },
-      // licenseKey: chỉ thêm `licenseKey: "free-license"` sau khi người dùng xác nhận đủ điều kiện (xem plan M6).
+      // Người dùng xác nhận (2026-10-21) đủ điều kiện free license Remotion: tối đa 3 người vận hành (spec §13).
+      licenseKey: "free-license",
       onProgress: ({ progress }) => {
         const now = Date.now();
         if (now - lastLock > LOCK_EVERY_MS) {
