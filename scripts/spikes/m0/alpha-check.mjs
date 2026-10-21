@@ -1,3 +1,4 @@
+import path from "node:path";
 import sharp from "sharp";
 
 const [, , ...args] = process.argv;
@@ -26,7 +27,9 @@ for (const file of files) {
       keyed++;
     }
   }
-  const out = file.replace(/\.(png|jpg)$/, "-keyed.png");
+  // Tên ra luôn khác tên vào, kể cả với đuôi .JPEG/.webp, để không ghi đè ảnh gốc.
+  const { dir, name } = path.parse(file);
+  const out = path.join(dir, `${name}-keyed.png`);
   await sharp(px, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toFile(out);
   console.log(`  keyed ${((keyed / total) * 100).toFixed(1)}% -> ${out}`);
 }

@@ -1,12 +1,17 @@
 import { createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { google } from "googleapis";
 
 const id = process.env.YOUTUBE_OAUTH_CLIENT_ID;
 const secret = process.env.YOUTUBE_OAUTH_CLIENT_SECRET;
+if (!id || !secret) throw new Error("Thiếu YOUTUBE_OAUTH_CLIENT_ID / YOUTUBE_OAUTH_CLIENT_SECRET trong .env");
+
 const OUT = new URL("../../../data/spikes/m0/", import.meta.url);
 const { refresh_token } = JSON.parse(await readFile(new URL("youtube-token.json", OUT), "utf8"));
-const video = new URL(process.argv[2] ?? "probe.mp4", OUT);
+// Đường dẫn truyền vào tính theo thư mục hiện tại; mặc định là probe.mp4 của Task 4.
+const video = process.argv[2] ? path.resolve(process.argv[2]) : fileURLToPath(new URL("probe.mp4", OUT));
 
 const oauth2 = new google.auth.OAuth2(id, secret);
 oauth2.setCredentials({ refresh_token });

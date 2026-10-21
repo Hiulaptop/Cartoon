@@ -1,14 +1,23 @@
+import { readFileSync } from "node:fs";
 import pg from "pg";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error("Thiếu DATABASE_URL trong .env");
+const raw = process.env.DATABASE_URL;
+if (!raw) throw new Error("Thiếu DATABASE_URL trong .env");
 console.log("DATABASE_URL: đã đọc");
+
+// pg mặc định KHÔNG dùng TLS, và Supabase không bắt buộc SSL mặc định.
+// Luôn bật TLS có xác minh chứng chỉ. Bỏ tham số ssl* trong URL vì pg cho chúng ghi đè object `ssl`.
+const url = new URL(raw);
+for (const k of ["sslmode", "ssl", "sslrootcert", "sslcert", "sslkey", "uselibpqcompat"]) url.searchParams.delete(k);
+const caPath = process.env.DATABASE_CA_CERT;
+const ssl = caPath ? { ca: readFileSync(caPath, "utf8") } : { rejectUnauthorized: true };
+console.log(`TLS: bắt buộc, xác minh bằng ${caPath ? "CA của Supabase (DATABASE_CA_CERT)" : "kho CA hệ thống"}`);
 
 const QUEUE = "m0_probe";
 const SCHEMA = "m0_probe_lg";
-const pool = new pg.Pool({ connectionString: url, max: 3 });
+const pool = new pg.Pool({ connectionString: url.toString(), ssl, max: 3 });
 
 async function q(label, sql, params = []) {
   const started = performance.now();
@@ -53,6 +62,14 @@ try {
   await graph.invoke({ count: 41 }, config);
   const snap = await graph.getState(config);
   console.log(`LangGraph state sau khi đọc lại từ Postgres: count=${snap.values.count} (mong đợi 42)`);
+} catch (e) {
+  if (/certificate/i.test(e.message) && !caPath) {
+    console.log(
+      "Gợi ý: chứng chỉ của Supabase không có trong kho CA hệ thống. Tải CA cert ở Database Settings → " +
+        "SSL Configuration rồi đặt DATABASE_CA_CERT=<đường dẫn file> trong .env.",
+    );
+  }
+  throw e;
 } finally {
   await pool.query("select pgmq.drop_queue($1)", [QUEUE]).catch((e) => console.log("drop queue:", e.message));
   await pool.query(`drop schema if exists ${SCHEMA} cascade`).catch((e) => console.log("drop schema:", e.message));
