@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -11,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -62,11 +64,37 @@ export const channels = pgTable("channels", {
   createdAt: createdAt(),
 });
 
+// Bộ phim hoạt hình: chỉ có tên. Sở hữu asset; mỗi design chọn đúng một bộ phim.
+export const series = pgTable("series", {
+  id: id(),
+  name: text("name").notNull().unique(),
+  createdAt: createdAt(),
+});
+
+// Thư mục (composite): parent_id NULL = project gốc. Không xóa được khi còn node con.
+export const projects = pgTable(
+  "projects",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    parentId: uuid("parent_id").references((): AnyPgColumn => projects.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // NULL khác nhau trong UNIQUE, nên tách hai chỉ mục từng phần: anh em cùng cha và project gốc.
+    uniqueIndex("projects_sibling_name").on(t.parentId, t.name).where(sql`${t.parentId} IS NOT NULL`),
+    uniqueIndex("projects_root_name").on(t.name).where(sql`${t.parentId} IS NULL`),
+  ],
+);
+
 export const assets = pgTable(
   "assets",
   {
     id: id(),
-    name: text("name").notNull().unique(),
+    seriesId: uuid("series_id")
+      .notNull()
+      .references(() => series.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
     kind: assetKind("kind").notNull(),
     displayName: text("display_name").notNull(),
     description: text("description").notNull().default(""),
@@ -76,6 +104,8 @@ export const assets = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
+    // Tên duy nhất trong từng bộ phim (spec series-project-design §3).
+    unique("assets_series_name").on(t.seriesId, t.name),
     // Chuẩn đặt tên: docs/standards/asset-naming.md
     check(
       "assets_name_format",
@@ -122,6 +152,13 @@ export const combos = pgTable("combos", {
 
 export const videos = pgTable("videos", {
   id: id(),
+  // Bảng videos giữ vai "bản thiết kế" (design): thuộc một bộ phim và nằm trong một project.
+  seriesId: uuid("series_id")
+    .notNull()
+    .references(() => series.id, { onDelete: "restrict" }),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "restrict" }),
   // Có thể chưa chọn kênh khi mới tạo video; bắt buộc ở bước upload (M7).
   channelId: uuid("channel_id").references(() => channels.id, { onDelete: "set null" }),
   title: text("title").notNull(),

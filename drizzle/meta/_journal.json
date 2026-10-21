@@ -15,6 +15,13 @@
       "when": 1792556006145,
       "tag": "0001_pgmq_jobs_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792574419748,
+      "tag": "0002_series_projects",
+      "breakpoints": true
     }
   ]
 }

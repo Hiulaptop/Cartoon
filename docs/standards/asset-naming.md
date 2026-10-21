@@ -1,5 +1,7 @@
 # Chuẩn đặt tên asset
 
+Asset thuộc về đúng một bộ phim; tham chiếu `@...` trong kịch bản/cảnh luôn hiểu theo bộ phim của bản thiết kế.
+
 Áp dụng cho mọi asset trong DB, cho LLM viết kịch bản/phân cảnh, cho LLM validate và cho người duyệt. Tài liệu này là nguồn duy nhất; thay đổi quy ước phải sửa file này (và được duyệt như thay đổi schema).
 
 ## Cấu trúc
@@ -21,7 +23,7 @@
    - Trạng thái: `^[a-z0-9]+(_[a-z0-9]+)*$`
    - Tên asset (cả tiền tố) dài tối đa 40 ký tự.
 2. **Tên hiển thị** (có dấu, viết hoa, ví dụ "Minh") lưu ở cột `display_name`, không nằm trong tên.
-3. **Duy nhất** trong toàn hệ thống.
+3. **Duy nhất trong từng bộ phim** (cặp `series_id` + tên); hai bộ phim có thể cùng có `chr_minh`.
 4. **Bất biến sau khi duyệt.** Muốn đổi tên thì thêm bí danh vào `aliases`; tên cũ vẫn phân giải được để kịch bản cũ không hỏng.
 5. **Trạng thái chỉ lấy từ danh sách cho phép** của loại tương ứng (bên dưới). LLM không được tự đặt trạng thái mới. Thêm trạng thái = sửa danh sách trong file này.
 
