@@ -1,9 +1,13 @@
 node_modules
+**/node_modules
 .next
 .git
 .gitignore
 .env*
 *.md
+docs
+data
+scripts
 Dockerfile
 .dockerignore
 docker-compose.yml
