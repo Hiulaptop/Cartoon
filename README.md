@@ -69,3 +69,11 @@ npm run job -- system.ping  # đẩy job từ dòng lệnh
 ## Render (M6)
 
 Image worker có Chrome Headless Shell cho Remotion nên lớn hơn (khoảng 1.8 GB) và lần `docker compose build` đầu lâu hơn.
+
+## Upload YouTube (M7)
+
+1. Trên Google Cloud Console: bật **YouTube Data API v3**, tạo màn hình đồng ý OAuth loại External ở trạng thái **Testing** và thêm tài khoản chủ kênh làm test user, rồi tạo OAuth client loại **Desktop app**.
+2. Điền `YOUTUBE_OAUTH_CLIENT_ID` và `YOUTUBE_OAUTH_CLIENT_SECRET` vào `.env`.
+3. Chạy `npm run youtube:auth`, đăng nhập tài khoản chủ kênh và cho phép. Lệnh tự ghi `YOUTUBE_REFRESH_TOKEN` vào `.env` (không in ra).
+4. Project ở trạng thái Testing thì refresh token **hết hạn sau 7 ngày**: chạy lại bước 3 mỗi tuần. Trang `/upload` cảnh báo từ ngày thứ 6.
+5. Video mặc định upload ở chế độ riêng tư; muốn công khai phải tick ô xác nhận trên trang upload.
