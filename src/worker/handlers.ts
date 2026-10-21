@@ -5,6 +5,7 @@ import { writeDataFile } from "@/lib/storage";
 import { generateBase, generateVariant } from "./asset-jobs";
 import { generateScript } from "./script-jobs";
 import { generateScenes } from "./scene-jobs";
+import { renderVideo } from "./render-jobs";
 import { PermanentJobError, type JobHandler } from "./job-types";
 
 export { PermanentJobError };
@@ -39,4 +40,5 @@ export const handlers: Record<JobType, JobHandler> = {
   "asset.generate_variant": generateVariant,
   "script.generate": generateScript,
   "scenes.generate": generateScenes,
+  "video.render": renderVideo,
 };
