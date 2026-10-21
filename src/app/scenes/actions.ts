@@ -16,7 +16,9 @@ export async function playground(_prev: PlaygroundState, formData: FormData): Pr
   const intent = String(formData.get("intent") ?? "preview");
   const json = String(formData.get("json") ?? "");
   try {
-    const catalog = await loadApprovedCatalog();
+    const seriesId = String(formData.get("seriesId") ?? "");
+    if (!seriesId) return { json, issues: ["Chọn bộ phim"] };
+    const catalog = await loadApprovedCatalog(seriesId);
     if (intent === "sample") {
       const sample = sampleSceneDsl(catalog);
       if (!sample) return { json, issues: ["Cần ít nhất 1 bối cảnh (bg_) và 1 nhân vật (chr_) đã duyệt ở bước 1 để tạo cảnh mẫu."] };

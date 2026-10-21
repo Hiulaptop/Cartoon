@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import type { FormState } from "@/app/assets/actions";
+import type { FormState } from "@/lib/form";
 import { getDb } from "@/lib/db/client";
 import { reviews, scripts, videos } from "@/lib/db/schema";
 import { enqueueJob } from "@/lib/queue/jobs";
@@ -35,13 +35,17 @@ export async function createVideo(_prev: FormState, form: FormData): Promise<For
   const assetNames = form.getAll("assetNames").filter((v): v is string => typeof v === "string");
   if (title.length < 3) return { error: "Tiêu đề ít nhất 3 ký tự" };
   if (!Number.isInteger(targetSeconds) || targetSeconds < 30 || targetSeconds > 600) return { error: "Thời lượng 30–600 giây" };
-  const catalog = await loadApprovedCatalog();
+  // Tạm: form mới (có bộ phim và project) làm ở Task 4 của plan series-project-design.
+  const seriesId = text(form, "seriesId");
+  const projectId = text(form, "projectId");
+  if (!seriesId || !projectId) return { error: "Thiếu bộ phim hoặc project" };
+  const catalog = await loadApprovedCatalog(seriesId);
   const chosen = assetNames.filter((n) => catalog.has(n));
   if (!chosen.some((n) => catalog.get(n)?.kind === "chr")) return { error: "Chọn ít nhất 1 nhân vật đã duyệt" };
   if (!chosen.some((n) => catalog.get(n)?.kind === "bg")) return { error: "Chọn ít nhất 1 bối cảnh đã duyệt" };
 
   const combo = await ensureDefaultCombo();
-  const [video] = await getDb().insert(videos).values({ title, brief, comboId: combo.id }).returning({ id: videos.id });
+  const [video] = await getDb().insert(videos).values({ title, brief, comboId: combo.id, seriesId, projectId }).returning({ id: videos.id });
   await startScriptVersion(video.id, { assetNames: chosen, targetSeconds });
   revalidatePath("/videos");
   redirect(`/videos/${video.id}`);

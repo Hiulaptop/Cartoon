@@ -3,7 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import type { FormState } from "@/app/assets/actions";
+import type { FormState } from "@/lib/form";
 import { getDb } from "@/lib/db/client";
 import { reviews, scenes, videos } from "@/lib/db/schema";
 import { enqueueJob } from "@/lib/queue/jobs";

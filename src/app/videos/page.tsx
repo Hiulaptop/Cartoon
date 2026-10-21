@@ -22,7 +22,7 @@ export default async function VideosPage() {
   let videos: Awaited<ReturnType<typeof listVideos>> = [];
   let loadError: string | null = null;
   try {
-    const [catalog, list] = await Promise.all([loadApprovedCatalog(), listVideos()]);
+    const [catalog, list] = await Promise.all([loadApprovedCatalog("00000000-0000-0000-0000-000000000000") /* tạm, trang này bị thay ở Task 4 */, listVideos()]);
     options = [...catalog.values()].map((a) => ({ name: a.name, displayName: a.displayName, kind: a.kind }));
     videos = list;
   } catch (error) {

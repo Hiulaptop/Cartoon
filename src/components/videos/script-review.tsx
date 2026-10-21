@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import type { FormState } from "@/app/assets/actions";
+import type { FormState } from "@/lib/form";
 import { approveScript, regenerateScript, rejectScript } from "@/app/videos/actions";
 import { Button } from "@/components/ui/button";
 

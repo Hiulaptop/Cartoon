@@ -10,7 +10,9 @@ import { getDb } from "@/lib/db/client";
 import { assets, assetVariants, reviews } from "@/lib/db/schema";
 import { enqueueJob } from "@/lib/queue/jobs";
 
-export type FormState = { error?: string };
+import type { FormState } from "@/lib/form";
+
+export type { FormState } from "@/lib/form";
 
 function field(form: FormData, key: string): string {
   const value = form.get(key);

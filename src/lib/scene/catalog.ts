@@ -16,13 +16,15 @@ export type CatalogAsset = {
 // Khóa = tên asset ("chr_minh"). Chỉ gồm asset đã duyệt và biến thể đã duyệt có ảnh.
 export type Catalog = Map<string, CatalogAsset>;
 
-export async function loadApprovedCatalog(): Promise<Catalog> {
+// Danh mục của một bộ phim: asset của design luôn lấy theo bộ phim của design đó.
+export async function loadApprovedCatalog(seriesId: string): Promise<Catalog> {
   const rows = await getDb()
     .select({ asset: assets, variant: assetVariants })
     .from(assets)
     .innerJoin(assetVariants, eq(assetVariants.assetId, assets.id))
     .where(
       and(
+        eq(assets.seriesId, seriesId),
         eq(assets.status, "approved"),
         eq(assetVariants.status, "approved"),
         isNotNull(assetVariants.filePath),

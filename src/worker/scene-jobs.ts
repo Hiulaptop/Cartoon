@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import { getDb, getPool } from "@/lib/db/client";
-import { scenes, scripts, validations } from "@/lib/db/schema";
+import { scenes, scripts, validations, videos } from "@/lib/db/schema";
 import { assertDifferentFamily, RUBRIC_VERSION } from "@/lib/judge/rubric";
 import { requireModel } from "@/lib/ninerouter/client";
 import type { JobPayload } from "@/lib/queue/jobs";
@@ -48,7 +48,9 @@ export async function generateScenes(payload: JobPayload, ctx: JobContext) {
     throw new PermanentJobError(error instanceof Error ? error.message : String(error));
   }
 
-  const catalog = await loadApprovedCatalog();
+  const [video] = await db.select().from(videos).where(eq(videos.id, row.videoId)).limit(1);
+  if (!video) throw new PermanentJobError("Không có video của kịch bản này");
+  const catalog = await loadApprovedCatalog(video.seriesId);
   const plans = planScenes(content.data.script).filter((p) => !only || only.includes(p.position));
   const checkpointer = await getSaver();
   const graph = buildSceneGraph({ catalog, writerModel, judgeModel, checkpointer, humanFeedback });

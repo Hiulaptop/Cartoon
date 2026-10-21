@@ -29,7 +29,7 @@ export async function generateScript(payload: JobPayload) {
   const [video] = await db.select().from(videos).where(eq(videos.id, row.videoId)).limit(1);
   if (!video) throw new PermanentJobError("Không có video của kịch bản này");
 
-  const catalog = await loadApprovedCatalog();
+  const catalog = await loadApprovedCatalog(video.seriesId);
   const missing = meta.assetNames.filter((n) => !catalog.has(n));
   if (missing.length) throw new PermanentJobError(`Asset chưa duyệt hoặc không tồn tại: ${missing.join(", ")}`);
   const { definition: combo } = await ensureDefaultCombo();

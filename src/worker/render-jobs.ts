@@ -6,7 +6,7 @@ import { ensureBrowser, renderMedia, selectComposition } from "@remotion/rendere
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
-import { jobRuns, renders, scenes, scripts } from "@/lib/db/schema";
+import { jobRuns, renders, scenes, scripts, videos } from "@/lib/db/schema";
 import { errorMessage } from "@/lib/errors";
 import type { JobPayload } from "@/lib/queue/jobs";
 import { loadApprovedCatalog } from "@/lib/scene/catalog";
@@ -47,7 +47,9 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
     }
 
     // 2. Kiểm lại từng cảnh với danh mục hiện tại (asset có thể đã đổi sau khi duyệt).
-    const catalog = await loadApprovedCatalog();
+    const [video] = await db.select().from(videos).where(eq(videos.id, render.videoId)).limit(1);
+    if (!video) throw new PermanentJobError("Không có video của bản render này");
+    const catalog = await loadApprovedCatalog(video.seriesId);
     const sceneProps: VideoProps["scenes"] = [];
     const used = new Set<string>();
     for (const row of rows) {

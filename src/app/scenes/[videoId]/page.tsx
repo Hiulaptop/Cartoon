@@ -31,7 +31,7 @@ export default async function StoryboardPage({ params }: { params: Promise<{ vid
   const data = await getStoryboard(videoId);
   if (!data) notFound();
   const { video, script, rows, checks, running } = data;
-  const catalog = await loadApprovedCatalog();
+  const catalog = await loadApprovedCatalog(video.seriesId);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">

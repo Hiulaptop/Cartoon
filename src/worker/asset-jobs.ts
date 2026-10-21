@@ -17,12 +17,12 @@ function str(payload: JobPayload, key: string): string {
   return value;
 }
 
-// Tên đề xuất trùng thì thêm _2, _3...
-async function uniqueName(base: string): Promise<string> {
+// Tên đề xuất trùng trong cùng bộ phim thì thêm _2, _3...
+async function uniqueName(seriesId: string, base: string): Promise<string> {
   const db = getDb();
   for (let n = 1; n < 100; n++) {
     const candidate = n === 1 ? base : `${base.slice(0, 40 - `_${n}`.length)}_${n}`;
-    const taken = await db.select({ id: assets.id }).from(assets).where(eq(assets.name, candidate)).limit(1);
+    const taken = await db.select({ id: assets.id }).from(assets).where(and(eq(assets.seriesId, seriesId), eq(assets.name, candidate))).limit(1);
     if (taken.length === 0) return candidate;
   }
   throw new Error(`Không tìm được tên trống cho ${base}`);
@@ -64,6 +64,7 @@ export async function generateBase(payload: JobPayload) {
   const assetId = str(payload, "assetId");
   const kind = str(payload, "kind");
   const brief = str(payload, "brief");
+  const seriesId = str(payload, "seriesId");
   if (!isAssetKind(kind)) throw new PermanentJobError(`Loại asset không hợp lệ: ${kind}`);
   const db = getDb();
 
@@ -76,11 +77,11 @@ export async function generateBase(payload: JobPayload) {
     const proposal = parseProposal(res.content);
     let name = toAssetName(proposal.name, kind);
     if (assetNameError(name, kind)) name = toAssetName(brief, kind);
-    name = await uniqueName(name);
+    name = await uniqueName(seriesId, name);
     const displayName = typeof payload.displayName === "string" && payload.displayName ? payload.displayName : proposal.displayName;
     [asset] = await db
       .insert(assets)
-      .values({ id: assetId, name, kind, displayName, description: proposal.description, status: "generating" })
+      .values({ id: assetId, seriesId, name, kind, displayName, description: proposal.description, status: "generating" })
       .returning();
   }
 
