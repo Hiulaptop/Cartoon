@@ -14,7 +14,7 @@
 
 - Không có test tự động (AGENTS.md luật 4–6). Xác minh bằng `tsc`, lint, build và chạy thật.
 - **Không đổi schema DB.** Bảng checkpoint do `PostgresSaver.setup()` tạo trong schema riêng `langgraph` (bảng hệ thống, như spec §4 đã nêu). Khuôn JSON cảnh là khuôn đã duyệt ở M3; **bộ tiêu chí giám khảo và hai quyết định "ngưỡng đạt 3.5" / "họ model" ở mục Quyết định là hợp đồng cần duyệt cùng plan.**
-- Giám khảo phải **khác họ** với model viết (spec §6). Code từ chối chạy nếu cùng họ.
+- Giám khảo phải **khác họ** với model viết (spec §6). Code từ chối chạy nếu cùng họ, **trừ khi** người dùng bật `LLM_JUDGE_ALLOW_SAME_FAMILY=true`. Người dùng đã quyết định (2026-10-21) tạm dùng cùng họ `gemini` cho tới khi thêm provider khác; đây là ngoại lệ tạm so với spec §6, mất tác dụng chống thiên vị tự ưu ái, nên mọi lần chấm cùng họ được gắn cờ `sameFamily: true` trong `validations.scores` để loại khỏi hiệu chỉnh/ACE về sau.
 - Tối đa **2 vòng sửa** (3 lần viết cho mỗi cảnh); quá thì cảnh `failed` (spec §5 bước 3).
 - **Duyệt plan này = đồng ý chi phí kiểm chứng ở Task 4:** với kịch bản ~90 giây (khoảng 6–10 cảnh): 6–30 lời gọi model viết và 6–30 lời gọi giám khảo (mỗi lời khoảng 3–8 nghìn token).
 - Commit theo luật 7, kết thúc bằng `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
@@ -36,7 +36,7 @@
 |---|---|---|
 | 1 | `chia_cảnh` là hàm **tất định** `planScenes`, không gọi LLM | Rẻ, lặp lại được; kịch bản đã chia nhịp và có `seconds` |
 | 2 | Một nhịp → một cảnh nếu `seconds ≤ 25`; dài hơn thì chia đều thoại thành `ceil(seconds / 20)` cảnh con | DSL tối đa 30 giây; combo khuyên cảnh ≤ 25 giây |
-| 3 | Họ model = chữ cái đầu tiên sau tiền tố nhà cung cấp (`ag/gemini-3-flash` → `gemini`, `cc/claude-...` → `claude`). Cùng họ thì job `failed` ngay | Heuristic đơn giản; sai thì sửa hàm `modelFamily` |
+| 3 | Họ model = chữ cái đầu tiên sau tiền tố nhà cung cấp (`ag/gemini-3-flash` → `gemini`, `cc/claude-...` → `claude`). Cùng họ thì job `failed` ngay, trừ khi `LLM_JUDGE_ALLOW_SAME_FAMILY=true` (ngoại lệ tạm theo quyết định của người dùng: cho chạy, ghi log cảnh báo, gắn `sameFamily: true` vào mọi bản ghi chấm) | Heuristic đơn giản; sai thì sửa hàm `modelFamily` |
 | 4 | Điều kiện đạt: không vi phạm hai tiêu chí chặn cứng **và** điểm trung bình các tiêu chí tính điểm ≥ **3.5** (`JUDGE_PASS_AVG`, hằng trong `rubric.ts`, bump `RUBRIC_VERSION` khi đổi) | Spec §6 |
 | 5 | Lớp 1 cho cảnh kiểm thêm: thoại **đúng nguyên văn và đúng thứ tự** thoại trong kế hoạch; tốc độ đọc ≤ 20 ký tự/giây, mỗi câu 5/6–7 giây (M4) | LLM không được viết lại thoại đã duyệt |
 | 6 | Mỗi lần kiểm lớp 1 và mỗi lần chấm đều ghi `validations` | Lịch sử cho ACE về sau (spec §7) |
@@ -109,10 +109,11 @@ export function modelFamily(id: string): string {
   return /^[a-z]+/i.exec(name)?.[0].toLowerCase() ?? name.toLowerCase();
 }
 
-export function assertDifferentFamily(writer: string, judge: string): void {
-  if (modelFamily(writer) === modelFamily(judge)) {
-    throw new Error(`Giám khảo (${judge}) cùng họ với model viết (${writer}); đặt LLM_JUDGE_MODEL khác họ (spec §6)`);
-  }
+// Trả true nếu cùng họ và được phép (ngoại lệ tạm); ném lỗi nếu cùng họ mà không được phép.
+export function assertDifferentFamily(writer: string, judge: string): boolean {
+  if (modelFamily(writer) !== modelFamily(judge)) return false;
+  if (process.env.LLM_JUDGE_ALLOW_SAME_FAMILY === "true") return true;
+  throw new Error(`Giám khảo (${judge}) cùng họ với model viết (${writer}); đặt LLM_JUDGE_MODEL khác họ (spec §6) hoặc LLM_JUDGE_ALLOW_SAME_FAMILY=true`);
 }
 
 const score = z.int().min(1).max(5);
@@ -563,7 +564,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Chọn model giám khảo (cần người dùng)**
 
-Gọi `GET {NINE_ROUTER_BASE_URL}/models` (cùng header `Authorization` như `ping`), liệt kê model chat khác họ với `LLM_WRITER_MODEL` (hiện `ag/gemini-3-flash`, họ `gemini`). **Hỏi người dùng chọn** một model (ví dụ họ `claude` hoặc `gpt` nếu router có), thử một lời gọi `chat` nhỏ để chắc nó không trả 404 upstream như `ag/gemini-3.6-flash-medium` đã gặp ở M1, rồi đặt `LLM_JUDGE_MODEL` trong `.env` (người dùng điền; không in giá trị bí mật). Cập nhật comment trong `.env.example` ghi "khác họ với LLM_WRITER_MODEL".
+Gọi `GET {NINE_ROUTER_BASE_URL}/models` (cùng header `Authorization` như `ping`), liệt kê model chat khác họ với `LLM_WRITER_MODEL` (hiện `ag/gemini-3-flash`, họ `gemini`). **Hỏi người dùng chọn** một model (người dùng đã trả lời 2026-10-21: tạm dùng chính `LLM_WRITER_MODEL` làm giám khảo và đặt `LLM_JUDGE_ALLOW_SAME_FAMILY=true`; bỏ qua phần chọn model khác họ cho tới khi có provider mới) (ví dụ họ `claude` hoặc `gpt` nếu router có), thử một lời gọi `chat` nhỏ để chắc nó không trả 404 upstream như `ag/gemini-3.6-flash-medium` đã gặp ở M1, rồi đặt `LLM_JUDGE_MODEL` trong `.env` (người dùng điền; không in giá trị bí mật). Cập nhật comment trong `.env.example` ghi "khác họ với LLM_WRITER_MODEL".
 
 - [ ] **Step 2: Tạo `src/worker/scene-jobs.ts`**
 
@@ -610,8 +611,10 @@ export async function generateScenes(payload: JobPayload, ctx: JobContext) {
   }
   const writerModel = requireModel("LLM_WRITER_MODEL");
   const judgeModel = requireModel("LLM_JUDGE_MODEL");
+  let sameFamily = false;
   try {
-    assertDifferentFamily(writerModel, judgeModel);
+    sameFamily = assertDifferentFamily(writerModel, judgeModel);
+    if (sameFamily) console.warn(JSON.stringify({ event: "judge.same_family", writerModel, judgeModel }));
   } catch (error) {
     throw new PermanentJobError(error instanceof Error ? error.message : String(error));
   }
@@ -653,7 +656,7 @@ export async function generateScenes(payload: JobPayload, ctx: JobContext) {
             targetId: created.id,
             validatorModel: h.model,
             rubricVersion: h.stage === "judge" ? RUBRIC_VERSION : "l1-scene-v1",
-            scores: { round: h.round, stage: h.stage, detail: h.detail },
+            scores: { round: h.round, stage: h.stage, detail: h.detail, sameFamily: h.stage === "judge" ? sameFamily : undefined },
             verdict: h.verdict,
             feedback: h.feedback,
           })),
@@ -670,7 +673,7 @@ Lưu ý: xóa cảnh cũ cùng vị trí cũng xóa `validations` cũ? Không: `
 
 - [ ] **Step 3: Đăng ký job và env**
 
-`src/lib/queue/jobs.ts`: thêm `"scenes.generate"` vào `JOB_TYPES`. `src/worker/handlers.ts`: `import { generateScenes } from "./scene-jobs";` và `"scenes.generate": generateScenes,`. `LLM_JUDGE_MODEL` đã có trong `.env.example` và `x-runtime-env`.
+`src/lib/queue/jobs.ts`: thêm `"scenes.generate"` vào `JOB_TYPES`. `src/worker/handlers.ts`: `import { generateScenes } from "./scene-jobs";` và `"scenes.generate": generateScenes,`. `LLM_JUDGE_MODEL` đã có trong `.env.example` và `x-runtime-env`. Thêm `LLM_JUDGE_ALLOW_SAME_FAMILY` (mặc định rỗng) vào cả `.env.example` (kèm ghi chú "ngoại lệ tạm") và anchor `x-runtime-env` theo kiểu `${LLM_JUDGE_ALLOW_SAME_FAMILY:-}`; thêm hai file đó vào `git add` của Task 3 bước 4 (đã có `.env.example`, thêm `docker-compose.yml`).
 
 - [ ] **Step 4: Kiểm tra tĩnh và commit**
 
