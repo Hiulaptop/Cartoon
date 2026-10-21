@@ -34,6 +34,7 @@ export function sceneMessages(input: SceneWriteInput): ChatMessage[] {
     "Dialogue: copy each line's text EXACTLY and in the same order as the plan, set `speaker` to that character's id, give each line a [from,to) window with no overlap, long enough to read at <= 20 characters per second (at least 25 frames, at most 210 frames).",
     "Use moves/camera sparingly to show the planned actions. A talking character should have talk_a and talk_b approved for the mouth animation; otherwise keep them still.",
     `Transition: ${input.isFirst ? 'in = "fade"' : 'in = "cut"'}, ${input.isLast ? 'out = "fade"' : 'out = "cut"'}, frames = 12.`,
+    "Do not include a \"$schema\" key or any key not in the schema.",
     "Use ONLY these assets and states:",
     assets,
     `JSON Schema:\n${JSON.stringify(z.toJSONSchema(sceneDslSchema, { io: "input" }))}`,

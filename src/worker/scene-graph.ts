@@ -91,6 +91,8 @@ export function buildSceneGraph(deps: GraphDeps) {
       } catch (error) {
         return { ...o, dsl: undefined, feedback: `Phản hồi không phải JSON: ${error instanceof Error ? error.message : error}` };
       }
+      // Model hay chép nguyên khóa "$schema" của JSON Schema vào đầu ra: vô hại, bỏ đi trước khi kiểm khuôn.
+      if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) delete (raw as Record<string, unknown>)["$schema"];
       const parsed = parseSceneDsl(raw);
       // Sai khuôn: giữ dsl cũ để lần sửa sau có bản trước làm cơ sở, kèm danh sách lỗi.
       return parsed.ok
