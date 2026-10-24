@@ -61,7 +61,7 @@ Hai phàn nàn còn lại (voice chưa có UI/pipeline, video chưa có animatio
 ### 4.1 Khung chung
 
 - `src/app/layout.tsx`: bọc `ThemeProvider` (`next-themes`, `attribute="class"`, `defaultTheme="system"`, khớp `.dark` hiện có) và `TooltipProvider`; đặt `<Toaster />` (component shadcn).
-- `AppSidebar`: hai nhóm, **Bài giảng thuật toán** (design kind `algorithm`) và **Hoạt hình**, cộng "Bộ phim", "Project", "Jobs", "Công cụ". Giữ nguyên href hiện có; mục trạng thái active tính theo `pathname`.
+- `AppSidebar`: nhóm theo chức năng (**Sản xuất**: Tổng quan, Bộ phim, Project; **Hệ thống**: Jobs; **Công cụ**), có biểu tượng. Không có trang liệt kê riêng design bài giảng nên không tách nhóm theo loại; điều hướng theo loại do stepper trong từng design đảm nhận. Giữ nguyên href hiện có; mục active tính theo `pathname`.
 - `AppTopbar` (mới): breadcrumb và `NotificationBell`.
 - `designs/[id]/layout.tsx`: giữ breadcrumb, tên, bộ phim; với `kind === "algorithm"` thay dòng chữ mô tả bằng `AlgorithmShell` (xem 4.2). Với `cartoon` giữ `DesignTabs`.
 
@@ -71,11 +71,11 @@ Route (mỗi bước một URL, đều `export const dynamic = "force-dynamic"`)
 
 ```text
 /designs/[id]/algorithm                 -> redirect sang bước hiện tại (workflow.stage)
-/designs/[id]/algorithm/[step]          step ∈ problem | solution | combo | script | assets | animation | render
+/designs/[id]/algorithm/[step]          step ∈ problem | solution | combo | script | animation | render
 /designs/[id]/algorithm/history         giữ nguyên route, đồng thời mở được dạng ngăn kéo
 ```
 
-`STEPS` là một mảng cấu hình duy nhất (`src/lib/algorithm/steps.ts`): `{ key, label, requires, accepted, active }`. Stepper, redirect và guard đều đọc từ mảng này. **Bước Voice của B và khung Preview của C chỉ thêm một mục vào mảng.**
+Workflow thực tế **không đi qua stage `assets`** (`approveAlgorithmStage` chuyển combo → script → animation → render; asset được gắn ngay trong bước Kịch bản), nên stepper có 6 bước và "Asset" là một khối trong bước Kịch bản. `STEPS` là một mảng cấu hình duy nhất (`src/lib/algorithm/steps.ts`): `{ key, label, requires, accepted, active }`. Stepper, redirect và guard đều đọc từ mảng này. **Bước Voice của B và khung Preview của C chỉ thêm một mục vào mảng.**
 
 Hàm thuần `deriveStepStates(workflow, revisions, runs, outputs, assetRequests)` trả về trạng thái từng bước:
 
@@ -89,7 +89,7 @@ Hàm thuần `deriveStepStates(workflow, revisions, runs, outputs, assetRequests
 | `failed` | revision hoặc run `failed` |
 | `stale` | revision `stale` hoặc run `stale` |
 
-Đặc tả bảng ánh xạ chính xác từng bước (đặc biệt `assets`, `render`) được chốt trong plan sau khi đọc `pipeline.ts`; hàm này **chỉ đọc**, không thay đổi quy tắc nghiệp vụ.
+Bảng ánh xạ chính xác từng bước nằm trong plan (đã đối chiếu `pipeline.ts`); hàm này **chỉ đọc**, không thay đổi quy tắc nghiệp vụ.
 
 Giao diện:
 
@@ -103,6 +103,7 @@ Giao diện:
 
 - Hook `useActionFeedback(action, { pending, success, queued })` bọc `useActionState<FormState, FormData>`:
   - trả `[state, formAction, isPending]` như cũ;
+  - **tự gọi `router.refresh()` khi thành công**, vì hầu hết server action hiện không gọi `revalidatePath` (đã kiểm tra `src/app/algorithm/actions.ts`), nên giao diện chỉ cập nhật nhờ `AutoRefresh`; hook bắn toast bên trong hàm bọc action để không mất toast nếu component bị gỡ sau khi dữ liệu mới về;
   - khi `state` đổi (mỗi lần action trả về một object mới) bắn toast: `state.error` thì `toast.error`, ngược lại `toast.success(success)`; nếu action đẩy job thì nội dung nêu "đã vào hàng đợi" và gắn nút "Xem tiến trình" cuộn tới `JobStatusBar`;
   - `pending` hiển thị qua `ActionButton`.
 - `ActionButton`: dựa trên `Button`, nhận `pending`; khi chờ hiện `Loader2` xoay và nhãn đang gửi, `aria-busy`, khóa bấm đúp; khi xong trả lại nhãn gốc. Dùng trong `<form>` hiện có, không đổi cách gửi dữ liệu.
@@ -152,7 +153,6 @@ Theo AGENTS.md luật 4-6: **không viết, không chạy test**. Dùng `npm run
 
 ## 9. Còn cần chốt trong plan
 
-- Bảng ánh xạ trạng thái chính xác cho `assets` và `render`.
 - Cách tách `page.tsx` hiện tại thành các trang bước mà không lặp truy vấn `getAlgorithmWorkflow` (dùng chung qua layout hay hàm cache).
 - Hình dạng JSON chính xác của hai endpoint và truy vấn SQL.
 - Thứ tự thực hiện thành các commit nhỏ đúng scope (primitive, khung chung, hook phản hồi, endpoint, workspace, dọn tts-tester).
