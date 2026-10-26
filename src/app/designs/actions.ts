@@ -6,7 +6,10 @@ import { redirect } from "next/navigation";
 
 import type { FormState } from "@/lib/form";
 import { getDb } from "@/lib/db/client";
-import { assetProposals, jobRuns, reviews, scripts, videos } from "@/lib/db/schema";
+import { assetProposals, jobRuns, projects, reviews, scripts, series, videos } from "@/lib/db/schema";
+import { createAlgorithmDraft } from "@/lib/algorithm/draft";
+import { getCartoonDesign } from "@/lib/video/queries";
+import { readySeriesIds } from "@/lib/series/queries";
 import { dropProposalById, openProposalCount } from "@/lib/casting/queries";
 import { enqueueJob } from "@/lib/queue/jobs";
 import { loadApprovedCatalog } from "@/lib/scene/catalog";
@@ -20,6 +23,7 @@ const text = (form: FormData, key: string) => {
 
 // Tạo phiên bản kịch bản mới (generating) và đẩy job. Dùng cho tạo design, loại kèm lý do, sinh lại.
 async function startScriptVersion(videoId: string, meta: ScriptContent["meta"]) {
+  if (!await getCartoonDesign(videoId)) throw new Error("Design không thuộc pipeline hoạt hình");
   const db = getDb();
   const [last] = await db.select({ version: scripts.version }).from(scripts).where(eq(scripts.videoId, videoId)).orderBy(desc(scripts.version)).limit(1);
   const [created] = await db
@@ -46,11 +50,26 @@ export async function createDesign(_prev: FormState, form: FormData): Promise<Fo
   const seriesId = text(form, "seriesId");
   const title = text(form, "title");
   const brief = text(form, "brief");
+  const kind = text(form, "kind");
+  if (kind !== "cartoon" && kind !== "algorithm") return { error: "Chọn loại video" };
   const targetSeconds = Number(text(form, "targetSeconds"));
   if (title.length < 3) return { error: "Tiêu đề ít nhất 3 ký tự" };
   if (!projectId) return { error: "Thiếu project" };
   if (!seriesId) return { error: "Chọn bộ phim" };
+  if (!/^[0-9a-f-]{36}$/i.test(projectId) || !/^[0-9a-f-]{36}$/i.test(seriesId)) return { error: "Project hoặc bộ phim không hợp lệ" };
+  const db = getDb();
+  if (kind === "algorithm") {
+    const videoId = await createAlgorithmDraft({ projectId, seriesId, title, problem: text(form, "problem") });
+    revalidatePath(`/projects/${projectId}`);
+    redirect(`/designs/${videoId}/algorithm`);
+  }
+  const [[project], [chosenSeries]] = await Promise.all([
+    db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1),
+    db.select({ id: series.id }).from(series).where(eq(series.id, seriesId)).limit(1),
+  ]);
+  if (!project || !chosenSeries) return { error: "Project hoặc bộ phim không tồn tại" };
   if (!Number.isInteger(targetSeconds) || targetSeconds < 30 || targetSeconds > 600) return { error: TARGET_RANGE };
+  if (!(await readySeriesIds()).has(seriesId)) return { error: "Bộ phim hoạt hình cần ít nhất 1 nhân vật và 1 bối cảnh đã duyệt" };
 
   const combo = await ensureDefaultCombo();
   const [video] = await getDb()
@@ -70,7 +89,7 @@ export async function createScript(_prev: FormState, form: FormData): Promise<Fo
   if (!Number.isInteger(targetSeconds) || targetSeconds < 30 || targetSeconds > 600) return { error: TARGET_RANGE };
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
-  if (!video) return { error: "Không có design này" };
+  if (!video || video.kind !== "cartoon") return { error: "Không có design hoạt hình này" };
   const [existing] = await db.select({ id: scripts.id }).from(scripts).where(eq(scripts.videoId, videoId)).limit(1);
   if (existing) return { error: "Design đã có kịch bản" };
   // Cổng casting (spec ai-casting §3).
@@ -88,6 +107,7 @@ export async function createScript(_prev: FormState, form: FormData): Promise<Fo
 export async function changeDesignSeries(_prev: FormState, form: FormData): Promise<FormState> {
   const videoId = text(form, "videoId");
   const seriesId = text(form, "seriesId");
+  if (!await getCartoonDesign(videoId)) return { error: "Không có design hoạt hình này" };
   const db = getDb();
   const [existing] = await db.select({ id: scripts.id }).from(scripts).where(eq(scripts.videoId, videoId)).limit(1);
   if (existing) return { error: "Design đã có kịch bản, không đổi được bộ phim" };
@@ -110,6 +130,7 @@ export async function dropProposal(_prev: FormState, form: FormData): Promise<Fo
 // Chạy lại casting khi lượt trước thất bại và chưa có đề xuất nào.
 export async function retryCasting(_prev: FormState, form: FormData): Promise<FormState> {
   const videoId = text(form, "videoId");
+  if (!await getCartoonDesign(videoId)) return { error: "Không có design hoạt hình này" };
   const db = getDb();
   const [proposal] = await db.select({ id: assetProposals.id }).from(assetProposals).where(eq(assetProposals.videoId, videoId)).limit(1);
   if (proposal) return { error: "Design đã có đề xuất" };
@@ -127,6 +148,7 @@ export async function retryCasting(_prev: FormState, form: FormData): Promise<Fo
 
 async function loadScript(scriptId: string) {
   const [row] = await getDb().select().from(scripts).where(eq(scripts.id, scriptId)).limit(1);
+  if (row && !await getCartoonDesign(row.videoId)) return null;
   const content = row ? scriptContentSchema.safeParse(row.content) : null;
   return row && content?.success ? { row, content: content.data } : null;
 }

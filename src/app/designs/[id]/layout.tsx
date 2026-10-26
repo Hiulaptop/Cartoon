@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { DesignTabs } from "@/components/designs/design-tabs";
 import { ancestors } from "@/lib/project/queries";
 import { getSeries } from "@/lib/series/queries";
-import { getVideo } from "@/lib/video/queries";
+import { getDesign } from "@/lib/video/queries";
+import { VIDEO_KIND_LABELS } from "@/lib/video/kind";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,8 @@ const UUID_RE = /^[0-9a-f-]{36}$/i;
 export default async function DesignLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
-  const data = await getVideo(id);
-  if (!data) notFound();
-  const { video } = data;
+  const video = await getDesign(id);
+  if (!video) notFound();
   const [trail, series] = await Promise.all([ancestors(video.projectId), getSeries(video.seriesId)]);
 
   return (
@@ -47,7 +47,9 @@ export default async function DesignLayout({ children, params }: { children: Rea
           )}
         </p>
       </div>
-      <DesignTabs designId={id} />
+      {video.kind === "cartoon" ? <DesignTabs designId={id} /> : (
+        <p className="text-sm text-muted-foreground">{VIDEO_KIND_LABELS.algorithm} · Pipeline riêng, không dùng Casting hoặc kịch bản hoạt hình.</p>
+      )}
       {children}
     </div>
   );

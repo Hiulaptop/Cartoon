@@ -9,6 +9,7 @@ import { assetNameError, isAllowedState, isAssetKind } from "@/lib/assets/naming
 import { getDb } from "@/lib/db/client";
 import { assets, assetVariants, reviews } from "@/lib/db/schema";
 import { resolveProposalsAfterApproval } from "@/lib/casting/queries";
+import { bindRequestsAfterApproval } from "@/lib/algorithm/asset-binding";
 import { enqueueJob } from "@/lib/queue/jobs";
 
 import type { FormState } from "@/lib/form";
@@ -72,6 +73,8 @@ export async function approveVariant(_prev: FormState, form: FormData): Promise<
   await db.insert(reviews).values({ targetType: "asset_variant", targetId: variant.id, decision: "approved" });
   // Đề xuất casting khớp chuyển sang approved; duyệt ảnh gốc thì sinh các biến thể đang chờ (spec ai-casting §3).
   await resolveProposalsAfterApproval(asset.id, variant.state);
+  // Request asset của bài giảng thuật toán đang chờ đúng ảnh này thì gắn luôn (không bắt gắn tay).
+  await bindRequestsAfterApproval(asset.id, variant.state);
   await refreshAsset(asset.id);
   return {};
 }

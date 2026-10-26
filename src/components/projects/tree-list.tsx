@@ -1,8 +1,10 @@
 import Link from "next/link";
 
+import { ALGORITHM_STAGE_LABELS, VIDEO_KIND_LABELS } from "@/lib/video/kind";
 import type { ProjectNode } from "@/lib/project/tree";
 
 const DESIGN_STATUS: Record<string, string> = {
+  casting: "Casting",
   scripting: "Kịch bản",
   storyboarding: "Phân cảnh",
   rendering: "Render",
@@ -28,7 +30,7 @@ export function TreeList({ nodes }: { nodes: readonly ProjectNode[] }) {
                 <li key={d.id}>
                   <Link href={`/designs/${d.id}`} className="text-sm hover:underline">
                     🎬 {d.name}
-                    <span className="ml-2 text-muted-foreground">{DESIGN_STATUS[d.status] ?? d.status}</span>
+                    <span className="ml-2 text-muted-foreground">{VIDEO_KIND_LABELS[d.videoKind]} · {d.videoKind === "algorithm" ? ALGORITHM_STAGE_LABELS[d.status.slice("algorithm:".length)] ?? d.status : DESIGN_STATUS[d.status] ?? d.status}</span>
                   </Link>
                 </li>
               ))}

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { AutoRefresh } from "@/components/auto-refresh";
 import { ScriptReview } from "@/components/videos/script-review";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { scriptContentSchema } from "@/lib/script/schema";
-import { getVideo } from "@/lib/video/queries";
+import { getDesign, getVideo } from "@/lib/video/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,8 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function DesignScriptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
+  const envelope = await getDesign(id);
+  if (envelope?.kind === "algorithm") redirect(`/designs/${id}/algorithm`);
   const data = await getVideo(id);
   if (!data) notFound();
   const { video, versions } = data;

@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db/client";
 import { channels, renders, uploads, videos } from "@/lib/db/schema";
 import { enqueueJob } from "@/lib/queue/jobs";
 import { validateMetadata } from "@/lib/youtube/metadata";
+import { getCartoonDesign } from "@/lib/video/queries";
 
 const text = (form: FormData, key: string) => {
   const v = form.get(key);
@@ -16,6 +17,7 @@ const text = (form: FormData, key: string) => {
 
 export async function suggest(_prev: FormState, form: FormData): Promise<FormState> {
   const videoId = text(form, "videoId");
+  if (!await getCartoonDesign(videoId)) return { error: "Không có design hoạt hình này" };
   await enqueueJob("upload.suggest_metadata", { videoId }, { type: "video", id: videoId });
   revalidatePath(`/designs/${videoId}/upload`);
   return {};
@@ -39,7 +41,7 @@ export async function startUpload(_prev: FormState, form: FormData): Promise<For
 
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
-  if (!video || video.status !== "uploading") return { error: "Video chưa ở bước upload (cần duyệt bản render)" };
+  if (!video || video.kind !== "cartoon" || video.status !== "uploading") return { error: "Video chưa ở bước upload (cần duyệt bản render)" };
   const [render] = await db.select().from(renders).where(and(eq(renders.videoId, videoId), eq(renders.status, "approved"))).limit(1);
   if (!render) return { error: "Chưa có bản render đã duyệt" };
   const active = await db

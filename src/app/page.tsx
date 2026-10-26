@@ -3,12 +3,13 @@ import Link from "next/link";
 import { JobButtons } from "@/components/job-buttons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/lib/db/client";
-import { videos } from "@/lib/db/schema";
+import { algorithmWorkflows, videos } from "@/lib/db/schema";
 import { PIPELINE_STEPS } from "@/lib/pipeline/steps";
 import { agreementRate } from "@/lib/scene/queries";
 import { listSeries } from "@/lib/series/queries";
 import { getSystemStatus, type Check } from "@/lib/system/status";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
+import { ALGORITHM_STAGE_LABELS, VIDEO_KIND_LABELS } from "@/lib/video/kind";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function Home() {
   // Phần dữ liệu không được làm hỏng trang khi DB lỗi (khối Hệ thống đã báo lỗi DB).
   const [seriesList, recent, rate] = await Promise.all([
     listSeries().catch(() => []),
-    getDb().select().from(videos).orderBy(desc(videos.createdAt)).limit(5).catch(() => []),
+    getDb().select({ id: videos.id, title: videos.title, kind: videos.kind, stage: algorithmWorkflows.stage }).from(videos).leftJoin(algorithmWorkflows, eq(algorithmWorkflows.videoId, videos.id)).orderBy(desc(videos.createdAt)).limit(5).catch(() => []),
     agreementRate().catch(() => ({ agree: 0, total: 0 })),
   ]);
 
@@ -95,7 +96,7 @@ export default async function Home() {
             {recent.length === 0 && <span className="text-muted-foreground">Chưa có bản thiết kế.</span>}
             {recent.map((v) => (
               <Link key={v.id} href={`/designs/${v.id}`} className="hover:underline">
-                {v.title}
+                {v.title} <span className="text-muted-foreground">· {VIDEO_KIND_LABELS[v.kind]}{v.kind === "algorithm" ? ` · ${ALGORITHM_STAGE_LABELS[v.stage ?? "problem"]}` : ""}</span>
               </Link>
             ))}
           </CardContent>

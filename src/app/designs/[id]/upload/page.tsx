@@ -20,7 +20,7 @@ export default async function UploadVideoPage({ params }: { params: Promise<{ id
   if (!UUID_RE.test(videoId)) notFound();
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
-  if (!video) notFound();
+  if (!video || video.kind !== "cartoon") notFound();
 
   const [render] = await db.select().from(renders).where(and(eq(renders.videoId, videoId), eq(renders.status, "approved"))).limit(1);
   const history = await db.select().from(uploads).where(eq(uploads.videoId, videoId)).orderBy(desc(uploads.createdAt));

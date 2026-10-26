@@ -19,15 +19,14 @@ export default async function NewDesignPage({ params }: { params: Promise<{ id: 
   if (!project) notFound();
 
   const [all, ready] = await Promise.all([listSeries(), readySeriesIds()]);
-  // Chỉ bộ phim có ít nhất 1 nhân vật và 1 bối cảnh đã duyệt mới chọn được.
+  // Algorithm chọn mọi bộ phim; form và action vẫn giữ cổng asset riêng của cartoon.
   const options: SeriesOption[] = await Promise.all(
-    all
-      .filter((s) => ready.has(s.id))
-      .map(async (s) => {
+    all.map(async (s) => {
         const catalog = await loadApprovedCatalog(s.id);
         return {
           id: s.id,
           name: s.name,
+          cartoonReady: ready.has(s.id),
           assets: [...catalog.values()].map((a) => ({ name: a.name, displayName: a.displayName, kind: a.kind })),
         };
       }),
@@ -40,11 +39,11 @@ export default async function NewDesignPage({ params }: { params: Promise<{ id: 
           ← {project.name}
         </Link>
         <h1 className="text-2xl font-semibold">Bản thiết kế mới</h1>
-        <p className="text-sm text-muted-foreground">Chọn bộ phim, rồi LLM viết kịch bản bằng asset của bộ phim đó.</p>
+        <p className="text-sm text-muted-foreground">Chọn loại video trước, rồi chọn bộ phim làm nguồn asset dùng lại.</p>
       </div>
       {options.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Chưa có bộ phim nào đủ asset (cần ít nhất 1 nhân vật và 1 bối cảnh đã duyệt). Tạo ở{" "}
+          Chưa có bộ phim nào. Tạo ở{" "}
           <Link href="/series" className="underline">
             Bộ phim
           </Link>

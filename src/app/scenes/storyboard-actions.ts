@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db/client";
 import { reviews, scenes, videos } from "@/lib/db/schema";
 import { enqueueJob } from "@/lib/queue/jobs";
 import { latestApprovedScript, storyboardJobRunning } from "@/lib/scene/queries";
+import { getCartoonDesign } from "@/lib/video/queries";
 
 const text = (form: FormData, key: string) => {
   const v = form.get(key);
@@ -26,7 +27,7 @@ export async function startStoryboard(_prev: FormState, form: FormData): Promise
 
 async function loadScene(sceneId: string) {
   const [row] = await getDb().select().from(scenes).where(eq(scenes.id, sceneId)).limit(1);
-  return row ?? null;
+  return row && await getCartoonDesign(row.videoId) ? row : null;
 }
 
 // Khi mọi cảnh của kịch bản đã duyệt thì video sang bước render.
