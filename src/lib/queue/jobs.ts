@@ -7,7 +7,7 @@ import { jobRuns, targetType } from "@/lib/db/schema";
 export const JOB_QUEUE = "jobs";
 
 // Mỗi mốc sau thêm loại job của mình vào đây (vd. "asset.generate" ở M2).
-export const JOB_TYPES = ["system.ping", "system.llm_ping", "asset.generate_base", "asset.generate_variant", "script.generate", "scenes.generate", "video.render", "upload.youtube", "upload.suggest_metadata", "casting.propose"] as const;
+export const JOB_TYPES = ["system.ping", "system.llm_ping", "asset.generate_base", "asset.generate_variant", "script.generate", "scenes.generate", "video.render", "upload.youtube", "upload.suggest_metadata", "casting.propose", "algorithm.solution.generate", "algorithm.combo.propose", "algorithm.script.generate", "algorithm.animation.generate", "algorithm.video.render", "algorithm.asset.generate", "algorithm.voice.generate", "algorithm.problem.generate", "algorithm.assets.resolve"] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 export type JobPayload = Record<string, unknown>;
 export type JobTarget = { type: (typeof targetType.enumValues)[number]; id: string };
@@ -39,6 +39,21 @@ export async function enqueueJob(
       .where(eq(jobRuns.id, run.id));
     return run.id;
   });
+}
+
+export async function enqueueJobInTransaction(
+  tx: Parameters<Parameters<Db["transaction"]>[0]>[0],
+  type: JobType,
+  payload: JobPayload = {},
+  target?: JobTarget,
+): Promise<string> {
+  const [run] = await tx.insert(jobRuns)
+    .values({ jobType: type, targetType: target?.type, targetId: target?.id })
+    .returning({ id: jobRuns.id });
+  const message: JobMessage = { jobRunId: run.id, type, payload };
+  const sent = await tx.execute<{ msg_id: string }>(sql`SELECT pgmq.send(${JOB_QUEUE}, ${JSON.stringify(message)}::jsonb) AS msg_id`);
+  await tx.update(jobRuns).set({ queueMsgId: Number(sent.rows[0].msg_id) }).where(eq(jobRuns.id, run.id));
+  return run.id;
 }
 
 export async function listRecentJobs(limit = 50, db: Db = getDb()) {

@@ -2,11 +2,13 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import { jobRuns, reviews, scenes, scripts, validations, videos } from "@/lib/db/schema";
+import { getCartoonDesign } from "@/lib/video/queries";
 
 export type SceneRow = typeof scenes.$inferSelect;
 export type ValidationRow = typeof validations.$inferSelect;
 
 export async function latestApprovedScript(videoId: string) {
+  if (!await getCartoonDesign(videoId)) return null;
   const [row] = await getDb()
     .select()
     .from(scripts)
@@ -29,7 +31,7 @@ export async function storyboardJobRunning(scriptId: string): Promise<boolean> {
 export async function getStoryboard(videoId: string) {
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
-  if (!video) return null;
+  if (!video || video.kind !== "cartoon") return null;
   const script = await latestApprovedScript(videoId);
   if (!script) return { video, script: null, rows: [], checks: new Map<string, ValidationRow[]>(), running: false };
   const rows = await db.select().from(scenes).where(eq(scenes.scriptId, script.id)).orderBy(asc(scenes.position));

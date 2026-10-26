@@ -1,17 +1,18 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
-import { projects, videos } from "@/lib/db/schema";
+import { algorithmWorkflows, projects, videos } from "@/lib/db/schema";
 
 import { buildTree, type ProjectNode } from "./tree";
 
 export async function loadTree(): Promise<ProjectNode[]> {
   const db = getDb();
-  const [ps, ds] = await Promise.all([db.select().from(projects), db.select().from(videos)]);
-  return buildTree(
-    ps,
-    ds.map((d) => ({ id: d.id, title: d.title, status: d.status, projectId: d.projectId, seriesId: d.seriesId })),
-  );
+  const [ps, ds] = await Promise.all([
+    db.select().from(projects),
+    db.select({ id: videos.id, title: videos.title, status: videos.status, kind: videos.kind, projectId: videos.projectId, seriesId: videos.seriesId, algorithmStage: algorithmWorkflows.stage })
+      .from(videos).leftJoin(algorithmWorkflows, eq(algorithmWorkflows.videoId, videos.id)),
+  ]);
+  return buildTree(ps, ds);
 }
 
 // Đường dẫn từ project gốc tới project này (breadcrumb), theo thứ tự gốc -> chính nó.

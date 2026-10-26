@@ -3,6 +3,8 @@ import type { ChatMessage } from "@/lib/ninerouter/client";
 import type { AssetKind } from "./naming";
 
 const STYLE = "2D flat cartoon style, thick clean black outlines, simple shading, no text, no watermark";
+export type ArtStyle = "cartoon" | "pixel";
+const STYLE_PIXEL = "pixel art, 16-bit retro game sprite style, limited color palette, crisp square pixels, clean dark outlines, no anti-aliasing, no text, no watermark";
 const GREEN_BG = "on a perfectly flat solid pure green (#00FF00) background, no shadow on the background";
 
 const STATE_PHRASES: Record<string, string> = {
@@ -22,7 +24,7 @@ const STATE_PHRASES: Record<string, string> = {
 };
 
 // Prompt ảnh cho một biến thể. Mô tả asset giữ nguyên giữa các biến thể để nhân vật ít lệch nhất có thể.
-export function imagePrompt(kind: AssetKind, description: string, state: string, feedback?: string): string {
+export function imagePrompt(kind: AssetKind, description: string, state: string, feedback?: string, style: ArtStyle = "cartoon"): string {
   const parts = [description.trim()];
   const phrase = STATE_PHRASES[state];
   if (phrase) parts.push(phrase);
@@ -33,7 +35,7 @@ export function imagePrompt(kind: AssetKind, description: string, state: string,
     fx: "single effect centered, nothing else in the frame",
   };
   parts.push(framing[kind]);
-  parts.push(STYLE);
+  parts.push(style === "pixel" ? STYLE_PIXEL : STYLE);
   if (kind !== "bg") parts.push(GREEN_BG);
   if (feedback?.trim()) parts.push(`Fix these problems from the previous attempt: ${feedback.trim()}`);
   return parts.join(", ");

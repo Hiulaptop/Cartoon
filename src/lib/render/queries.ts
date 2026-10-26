@@ -9,7 +9,7 @@ export type RenderRow = typeof renders.$inferSelect;
 export async function getRenders(videoId: string) {
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
-  if (!video) return null;
+  if (!video || video.kind !== "cartoon") return null;
   const rows = await db.select().from(renders).where(eq(renders.videoId, videoId)).orderBy(desc(renders.createdAt));
   const progress = new Map<string, number>();
   if (rows.length) {

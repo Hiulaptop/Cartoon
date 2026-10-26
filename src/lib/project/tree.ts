@@ -1,3 +1,5 @@
+import type { VideoKind } from "@/lib/video/kind";
+
 // Composite: node nhánh (project) chứa node nhánh/lá; node lá (design). Dựng trong bộ nhớ từ hai bảng.
 export type NodeSummary = { designs: number; byStatus: Record<string, number> };
 
@@ -17,6 +19,7 @@ export class DesignNode implements TreeNode {
     readonly name: string,
     readonly status: string,
     readonly seriesId: string,
+    readonly videoKind: VideoKind,
   ) {}
   summary(): NodeSummary {
     return { designs: 1, byStatus: { [this.status]: 1 } };
@@ -48,7 +51,7 @@ export class ProjectNode implements TreeNode {
 }
 
 type ProjectRow = { id: string; name: string; parentId: string | null };
-type DesignRow = { id: string; title: string; status: string; projectId: string; seriesId: string };
+type DesignRow = { id: string; title: string; status: string | null; projectId: string; seriesId: string; kind: VideoKind; algorithmStage: string | null };
 
 // Trả về các project gốc, đã gắn con và design. Project mồ côi (cha không có) bị bỏ qua.
 export function buildTree(projects: ProjectRow[], designs: DesignRow[]): ProjectNode[] {
@@ -59,7 +62,10 @@ export function buildTree(projects: ProjectRow[], designs: DesignRow[]): Project
     if (parent) parent.projects.push(node);
     else if (!node.parentId) roots.push(node);
   }
-  for (const d of designs) nodes.get(d.projectId)?.designs.push(new DesignNode(d.id, d.title, d.status, d.seriesId));
+  for (const d of designs) {
+    const status = d.kind === "algorithm" ? `algorithm:${d.algorithmStage ?? "problem"}` : d.status ?? "unknown";
+    nodes.get(d.projectId)?.designs.push(new DesignNode(d.id, d.title, status, d.seriesId, d.kind));
+  }
   const byName = (a: TreeNode, b: TreeNode) => a.name.localeCompare(b.name);
   for (const node of nodes.values()) {
     node.projects.sort(byName);
