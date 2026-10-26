@@ -2,9 +2,10 @@ import { and, eq } from "drizzle-orm";
 
 import { keyAndTrim, toPng } from "@/lib/assets/image";
 import { assetNameError, isAllowedState, isAssetKind, toAssetName, type AssetKind } from "@/lib/assets/naming";
-import { imagePrompt, parseProposal, proposalMessages } from "@/lib/assets/prompts";
+import { PIXEL_FARM_SERIES } from "@/lib/assets/pixel-farm";
+import { imagePrompt, parseProposal, proposalMessages, type ArtStyle } from "@/lib/assets/prompts";
 import { getDb } from "@/lib/db/client";
-import { assets, assetVariants } from "@/lib/db/schema";
+import { assets, assetVariants, series } from "@/lib/db/schema";
 import { chat, generateImage, requireModel } from "@/lib/ninerouter/client";
 import type { JobPayload } from "@/lib/queue/jobs";
 import { writeDataFile } from "@/lib/storage";
@@ -28,10 +29,16 @@ async function uniqueName(seriesId: string, base: string): Promise<string> {
   throw new Error(`Không tìm được tên trống cho ${base}`);
 }
 
+// Series Pixel Farm vẽ pixel art; mọi series khác giữ phong cách hoạt hình phẳng.
+async function styleOfSeries(seriesId: string): Promise<ArtStyle> {
+  const [row] = await getDb().select({ name: series.name }).from(series).where(eq(series.id, seriesId)).limit(1);
+  return row?.name === PIXEL_FARM_SERIES ? "pixel" : "cartoon";
+}
+
 // Sinh ảnh cho một biến thể, xử lý, lưu file, chuyển sang chờ duyệt.
-async function renderVariant(assetId: string, kind: AssetKind, description: string, state: string, feedback?: string) {
+async function renderVariant(assetId: string, kind: AssetKind, description: string, state: string, feedback: string | undefined, style: ArtStyle) {
   const db = getDb();
-  const prompt = imagePrompt(kind, description, state, feedback);
+  const prompt = imagePrompt(kind, description, state, feedback, style);
   const where = and(eq(assetVariants.assetId, assetId), eq(assetVariants.state, state));
   await db
     .insert(assetVariants)
@@ -85,7 +92,7 @@ export async function generateBase(payload: JobPayload) {
       .returning();
   }
 
-  const result = await renderVariant(asset.id, kind, asset.description, "base");
+  const result = await renderVariant(asset.id, kind, asset.description, "base", undefined, await styleOfSeries(asset.seriesId));
   await db.update(assets).set({ status: "pending_review" }).where(eq(assets.id, asset.id));
   return { name: asset.name, llm: usage, image: result };
 }
@@ -99,7 +106,7 @@ export async function generateVariant(payload: JobPayload) {
   const [asset] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
   if (!asset) throw new PermanentJobError(`Không có asset ${assetId}`);
   if (!isAllowedState(asset.kind, state)) throw new PermanentJobError(`Trạng thái ${state} không hợp lệ cho ${asset.kind}`);
-  const image = await renderVariant(asset.id, asset.kind, asset.description, state, feedback);
+  const image = await renderVariant(asset.id, asset.kind, asset.description, state, feedback, await styleOfSeries(asset.seriesId));
   if (state === "base") await db.update(assets).set({ status: "pending_review" }).where(eq(assets.id, asset.id));
   return { name: asset.name, image };
 }

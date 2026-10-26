@@ -8,6 +8,13 @@ import { generateScenes } from "./scene-jobs";
 import { renderVideo } from "./render-jobs";
 import { suggestMetadata, uploadYoutube } from "./upload-jobs";
 import { proposeCasting } from "./casting-jobs";
+import { generateAlgorithmSolution } from "./algorithm-solution-jobs";
+import { generateAlgorithmAnimation, generateAlgorithmScript, proposeAlgorithmCombo } from "./algorithm-stage-jobs";
+import { renderAlgorithmVideo } from "./algorithm-render-jobs";
+import { generateAlgorithmAssetBase } from "./algorithm-asset-jobs";
+import { generateAlgorithmVoice } from "./algorithm-voice-jobs";
+import { generateAlgorithmProblem } from "./algorithm-problem-jobs";
+import { resolveAlgorithmAssets } from "./algorithm-asset-resolve-jobs";
 import { PermanentJobError, type JobHandler } from "./job-types";
 
 export { PermanentJobError };
@@ -46,4 +53,13 @@ export const handlers: Record<JobType, JobHandler> = {
   "upload.youtube": uploadYoutube,
   "upload.suggest_metadata": suggestMetadata,
   "casting.propose": proposeCasting,
+  "algorithm.solution.generate": generateAlgorithmSolution,
+  "algorithm.combo.propose": proposeAlgorithmCombo,
+  "algorithm.script.generate": generateAlgorithmScript,
+  "algorithm.animation.generate": generateAlgorithmAnimation,
+  "algorithm.video.render": renderAlgorithmVideo,
+  "algorithm.asset.generate": generateAlgorithmAssetBase,
+  "algorithm.voice.generate": generateAlgorithmVoice,
+  "algorithm.problem.generate": generateAlgorithmProblem,
+  "algorithm.assets.resolve": resolveAlgorithmAssets,
 };

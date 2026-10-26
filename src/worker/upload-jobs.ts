@@ -35,7 +35,7 @@ export async function uploadYoutube(payload: JobPayload) {
 
   const [video] = await db.select().from(videos).where(eq(videos.id, upload.videoId)).limit(1);
   const [render] = await db.select().from(renders).where(and(eq(renders.videoId, upload.videoId), eq(renders.status, "approved"))).limit(1);
-  if (!video || video.status !== "uploading" || !render?.filePath) throw new PermanentJobError("Video chưa có bản render đã duyệt");
+  if (!video || video.kind !== "cartoon" || video.status !== "uploading" || !render?.filePath) throw new PermanentJobError("Video chưa có bản render đã duyệt");
 
   // Giữ hạn mức ngày bằng cửa sổ trượt 24 giờ (quyết định 3).
   const since = new Date(Date.now() - 24 * 3600 * 1000);
@@ -88,7 +88,7 @@ export async function suggestMetadata(payload: JobPayload) {
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
   const [script] = await db.select().from(scripts).where(and(eq(scripts.videoId, videoId), eq(scripts.status, "approved"))).limit(1);
   const content = script && scriptContentSchema.safeParse(script.content);
-  if (!video || !content?.success || !content.data.script) throw new PermanentJobError("Video chưa có kịch bản đã duyệt");
+  if (!video || video.kind !== "cartoon" || !content?.success || !content.data.script) throw new PermanentJobError("Video chưa có kịch bản đã duyệt");
   const s = content.data.script;
 
   const res = await chat({

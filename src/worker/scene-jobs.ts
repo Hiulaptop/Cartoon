@@ -49,7 +49,7 @@ export async function generateScenes(payload: JobPayload, ctx: JobContext) {
   }
 
   const [video] = await db.select().from(videos).where(eq(videos.id, row.videoId)).limit(1);
-  if (!video) throw new PermanentJobError("Không có video của kịch bản này");
+  if (!video || video.kind !== "cartoon") throw new PermanentJobError("Không có video hoạt hình của kịch bản này");
   const catalog = await loadApprovedCatalog(video.seriesId);
   const plans = planScenes(content.data.script).filter((p) => !only || only.includes(p.position));
   const checkpointer = await getSaver();

@@ -28,7 +28,7 @@ export async function generateScript(payload: JobPayload) {
   if (!parsedContent.success) throw new PermanentJobError("scripts.content thiếu meta");
   const { meta } = parsedContent.data;
   const [video] = await db.select().from(videos).where(eq(videos.id, row.videoId)).limit(1);
-  if (!video) throw new PermanentJobError("Không có video của kịch bản này");
+  if (!video || video.kind !== "cartoon") throw new PermanentJobError("Không có video hoạt hình của kịch bản này");
 
   // Cổng casting (spec ai-casting §3): không viết khi còn đề xuất asset chưa duyệt hoặc chưa bỏ.
   const open = await openProposalCount(video.id);

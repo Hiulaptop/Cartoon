@@ -28,6 +28,8 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
   const db = getDb();
   const [render] = await db.select().from(renders).where(eq(renders.id, renderId)).limit(1);
   if (!render) throw new PermanentJobError(`Không có render ${renderId}`);
+  const [video] = await db.select().from(videos).where(eq(videos.id, render.videoId)).limit(1);
+  if (!video || video.kind !== "cartoon") throw new PermanentJobError("Không có video hoạt hình của bản render này");
 
   const stage = dataPath(`tmp/render-${renderId}`);
   try {
@@ -47,8 +49,6 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
     }
 
     // 2. Kiểm lại từng cảnh với danh mục hiện tại (asset có thể đã đổi sau khi duyệt).
-    const [video] = await db.select().from(videos).where(eq(videos.id, render.videoId)).limit(1);
-    if (!video) throw new PermanentJobError("Không có video của bản render này");
     const catalog = await loadApprovedCatalog(video.seriesId);
     const sceneProps: VideoProps["scenes"] = [];
     const used = new Set<string>();

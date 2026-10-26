@@ -26,7 +26,7 @@ export async function proposeCasting(payload: JobPayload) {
   const targetSeconds = typeof payload.targetSeconds === "number" ? payload.targetSeconds : DEFAULT_TARGET_SECONDS;
   const db = getDb();
   const [video] = await db.select().from(videos).where(eq(videos.id, videoId)).limit(1);
-  if (!video) throw new PermanentJobError(`Không có design ${videoId}`);
+  if (!video || video.kind !== "cartoon") throw new PermanentJobError(`Không có design hoạt hình ${videoId}`);
   const [existing] = await db.select({ id: assetProposals.id }).from(assetProposals).where(eq(assetProposals.videoId, videoId)).limit(1);
   if (existing) return { skipped: "đã có đề xuất" };
 
