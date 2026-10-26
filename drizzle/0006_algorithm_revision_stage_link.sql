@@ -1,0 +1,2 @@
+ALTER TABLE "algorithm_generation_runs" ADD CONSTRAINT "algorithm_generation_runs_video_stage_id" UNIQUE("video_id","stage","id");--> statement-breakpoint
+ALTER TABLE "algorithm_revisions" ADD CONSTRAINT "algorithm_revisions_run_stage_fk" FOREIGN KEY ("video_id","stage","generation_run_id") REFERENCES "public"."algorithm_generation_runs"("video_id","stage","id") ON DELETE restrict ON UPDATE no action;

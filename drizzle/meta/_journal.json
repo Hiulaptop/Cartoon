@@ -29,6 +29,76 @@
       "when": 1792601584779,
       "tag": "0003_ai_casting",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792765276242,
+      "tag": "0004_algorithm_video_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792765310914,
+      "tag": "0005_algorithm_video_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792769246253,
+      "tag": "0006_algorithm_revision_stage_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792770351816,
+      "tag": "0007_algorithm_stale_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792771027985,
+      "tag": "0008_algorithm_solution_job",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792851600000,
+      "tag": "0009_algorithm_revision_publish_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792889875710,
+      "tag": "0010_algorithm_voice_stage_enum",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792890134532,
+      "tag": "0011_algorithm_voice_clips",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792890135788,
+      "tag": "0012_algorithm_voice_pointer_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792932035974,
+      "tag": "0013_woozy_wallow",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."algorithm_stage" ADD VALUE IF NOT EXISTS 'voice' BEFORE 'animation';

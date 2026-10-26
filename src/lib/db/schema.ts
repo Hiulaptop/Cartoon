@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  type PgTableExtraConfigValue,
   bigint,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -24,9 +26,17 @@ export const reviewStatus = pgEnum("review_status", [
   "approved",
   "rejected",
   "failed",
+  "stale",
 ]);
 export const assetKind = pgEnum("asset_kind", ["chr", "bg", "prop", "fx"]);
-// Video đang ở bước nào của quy trình.
+export const videoKind = pgEnum("video_kind", ["cartoon", "algorithm"]);
+export const algorithmStage = pgEnum("algorithm_stage", ["problem", "solution", "combo", "script", "assets", "voice", "animation", "render", "done"]);
+export const algorithmSource = pgEnum("algorithm_source", ["human", "llm"]);
+export const algorithmRunStatus = pgEnum("algorithm_run_status", ["queued", "running", "waiting_review", "succeeded", "failed", "stale"]);
+export const lessonStatus = pgEnum("lesson_status", ["proposed", "approved", "rejected", "retired"]);
+export const voiceClipStatus = pgEnum("algorithm_voice_clip_status", ["generating", "ready", "failed"]);
+export const algorithmAssetStatus = pgEnum("algorithm_asset_status", ["open", "generating", "pending_review", "bound", "dropped", "failed"]);
+// Video đang ở bước nào của quy trình hoạt hình.
 export const videoStatus = pgEnum("video_status", [
   // AI đề xuất asset, chờ người duyệt (spec ai-casting).
   "casting",
@@ -45,6 +55,12 @@ export const targetType = pgEnum("target_type", [
   "scene",
   "render",
   "upload",
+  "algorithm_workflow",
+  "algorithm_revision",
+  "algorithm_output",
+  "algorithm_generation_run",
+  "playbook_lesson",
+  "algorithm_workflow",
 ]);
 export const reviewDecision = pgEnum("review_decision", ["approved", "rejected"]);
 export const validationVerdict = pgEnum("validation_verdict", ["pass", "fail"]);
@@ -167,10 +183,14 @@ export const videos = pgTable("videos", {
   brief: text("brief").notNull().default(""),
   comboId: uuid("combo_id").references(() => combos.id, { onDelete: "set null" }),
   // Mặc định giữ "scripting": Postgres cấm dùng giá trị enum mới thêm trong cùng transaction migration; app tự đặt "casting".
-  status: videoStatus("status").notNull().default("scripting"),
+  kind: videoKind("kind").notNull().default("cartoon"),
+  status: videoStatus("status").default("scripting"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-});
+}, (t): PgTableExtraConfigValue[] => [
+  unique("videos_id_kind").on(t.id, t.kind),
+  check("videos_kind_status", sql`(${t.kind} = 'cartoon' AND ${t.status} IS NOT NULL) OR (${t.kind} = 'algorithm' AND ${t.status} IS NULL)`),
+]);
 
 export const scripts = pgTable(
   "scripts",
@@ -318,5 +338,237 @@ export const jobRuns = pgTable(
     index("job_runs_created_at").on(t.createdAt),
   ],
 );
+
+// Nội dung và lịch sử algorithm tách khỏi scripts/scenes/renders hoạt hình.
+export const algorithmRevisions = pgTable("algorithm_revisions", {
+  id: id(),
+  videoId: uuid("video_id").notNull(),
+  videoKind: videoKind("video_kind").notNull().default("algorithm"),
+  stage: algorithmStage("stage").notNull(),
+  version: integer("version").notNull(),
+  contractVersion: integer("contract_version").notNull().default(1),
+  content: jsonb("content").notNull(),
+  source: algorithmSource("source").notNull(),
+  status: reviewStatus("status").notNull().default("draft"),
+  model: text("model"),
+  promptVersion: text("prompt_version"),
+  generationRunId: uuid("generation_run_id"),
+  inputFingerprint: text("input_fingerprint").notNull(),
+  createdAt: createdAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  foreignKey({ columns: [t.videoId, t.videoKind], foreignColumns: [videos.id, videos.kind], name: "algorithm_revisions_video_kind_fk" }).onDelete("restrict"),
+  foreignKey({ columns: [t.videoId, t.generationRunId], foreignColumns: [algorithmGenerationRuns.videoId, algorithmGenerationRuns.id], name: "algorithm_revisions_generation_fk" }).onDelete("restrict"),
+  foreignKey({ columns: [t.videoId, t.stage, t.generationRunId], foreignColumns: [algorithmGenerationRuns.videoId, algorithmGenerationRuns.stage, algorithmGenerationRuns.id], name: "algorithm_revisions_run_stage_fk" }).onDelete("restrict"),
+  unique("algorithm_revisions_video_stage_version").on(t.videoId, t.stage, t.version),
+  unique("algorithm_revisions_video_id").on(t.videoId, t.id),
+  unique("algorithm_revisions_video_stage_id").on(t.videoId, t.stage, t.id),
+  check("algorithm_revisions_kind", sql`${t.videoKind} = 'algorithm'`),
+  check("algorithm_revisions_stage", sql`${t.stage} NOT IN ('render', 'done')`),
+  check("algorithm_revisions_versions", sql`${t.version} > 0 AND ${t.contractVersion} > 0`),
+  check("algorithm_revisions_fingerprint", sql`${t.inputFingerprint} ~ '^[a-f0-9]{64}$'`),
+]);
+
+export const algorithmWorkflows = pgTable("algorithm_workflows", {
+  videoId: uuid("video_id").primaryKey(),
+  videoKind: videoKind("video_kind").notNull().default("algorithm"),
+  stage: algorithmStage("stage").notNull().default("problem"),
+  concurrencyVersion: integer("concurrency_version").notNull().default(1),
+  activeProblemId: uuid("active_problem_id"),
+  acceptedProblemId: uuid("accepted_problem_id"),
+  activeSolutionId: uuid("active_solution_id"),
+  acceptedSolutionId: uuid("accepted_solution_id"),
+  activeComboId: uuid("active_combo_id"),
+  acceptedComboId: uuid("accepted_combo_id"),
+  activeScriptId: uuid("active_script_id"),
+  acceptedScriptId: uuid("accepted_script_id"),
+  activeAssetsId: uuid("active_assets_id"),
+  acceptedAssetsId: uuid("accepted_assets_id"),
+  activeVoiceId: uuid("active_voice_id"),
+  acceptedVoiceId: uuid("accepted_voice_id"),
+  activeAnimationId: uuid("active_animation_id"),
+  acceptedAnimationId: uuid("accepted_animation_id"),
+  activeOutputId: uuid("active_output_id"),
+  acceptedOutputId: uuid("accepted_output_id"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  foreignKey({ columns: [t.videoId, t.videoKind], foreignColumns: [videos.id, videos.kind], name: "algorithm_workflows_video_kind_fk" }).onDelete("restrict"),
+  check("algorithm_workflows_kind", sql`${t.videoKind} = 'algorithm'`),
+  check("algorithm_workflows_version", sql`${t.concurrencyVersion} > 0`),
+  foreignKey({ columns: [t.videoId, t.activeOutputId], foreignColumns: [algorithmOutputs.videoId, algorithmOutputs.id], name: "algorithm_workflows_active_output_fk" }).onDelete("restrict"),
+  foreignKey({ columns: [t.videoId, t.acceptedOutputId], foreignColumns: [algorithmOutputs.videoId, algorithmOutputs.id], name: "algorithm_workflows_accepted_output_fk" }).onDelete("restrict"),
+  ...([
+    ["active_problem", t.activeProblemId], ["accepted_problem", t.acceptedProblemId],
+    ["active_solution", t.activeSolutionId], ["accepted_solution", t.acceptedSolutionId],
+    ["active_combo", t.activeComboId], ["accepted_combo", t.acceptedComboId],
+    ["active_script", t.activeScriptId], ["accepted_script", t.acceptedScriptId],
+    ["active_assets", t.activeAssetsId], ["accepted_assets", t.acceptedAssetsId],
+    ["active_voice", t.activeVoiceId], ["accepted_voice", t.acceptedVoiceId],
+    ["active_animation", t.activeAnimationId], ["accepted_animation", t.acceptedAnimationId],
+  ] as const).map(([name, column]) => foreignKey({ columns: [t.videoId, column], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.id], name: `algorithm_workflows_${name}_fk` }).onDelete("restrict")),
+]);
+
+export const algorithmRevisionInputs = pgTable("algorithm_revision_inputs", {
+  id: id(),
+  videoId: uuid("video_id").notNull(),
+  revisionId: uuid("revision_id").notNull(),
+  inputRevisionId: uuid("input_revision_id").notNull(),
+}, (t): PgTableExtraConfigValue[] => [
+  unique("algorithm_revision_inputs_edge").on(t.revisionId, t.inputRevisionId),
+  foreignKey({ columns: [t.videoId, t.revisionId], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.id], name: "algorithm_revision_inputs_output_fk" }).onDelete("restrict"),
+  foreignKey({ columns: [t.videoId, t.inputRevisionId], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.id], name: "algorithm_revision_inputs_input_fk" }).onDelete("restrict"),
+  check("algorithm_revision_inputs_not_self", sql`${t.revisionId} <> ${t.inputRevisionId}`),
+]);
+
+export const algorithmGenerationRuns = pgTable("algorithm_generation_runs", {
+  id: id(),
+  videoId: uuid("video_id").notNull().references(() => algorithmWorkflows.videoId, { onDelete: "restrict" }),
+  stage: algorithmStage("stage").notNull(),
+  threadId: text("thread_id").notNull(),
+  requestKey: text("request_key").notNull().unique(),
+  inputSnapshot: jsonb("input_snapshot").notNull(),
+  inputFingerprint: text("input_fingerprint").notNull(),
+  status: algorithmRunStatus("status").notNull().default("queued"),
+  interruptId: text("interrupt_id"),
+  jobRunId: uuid("job_run_id").references(() => jobRuns.id, { onDelete: "restrict" }),
+  model: text("model"),
+  promptVersion: text("prompt_version"),
+  contractVersion: integer("contract_version").notNull().default(1),
+  metrics: jsonb("metrics").notNull().default({}),
+  error: text("error"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  unique("algorithm_generation_runs_video_id").on(t.videoId, t.id),
+  unique("algorithm_generation_runs_video_stage_id").on(t.videoId, t.stage, t.id),
+  index("algorithm_generation_runs_status").on(t.status),
+  check("algorithm_generation_runs_fingerprint", sql`${t.inputFingerprint} ~ '^[a-f0-9]{64}$'`),
+  check("algorithm_generation_runs_stage", sql`${t.stage} <> 'done'`),
+]);
+
+export const algorithmAssetRequests = pgTable("algorithm_asset_requests", {
+  id: id(),
+  videoId: uuid("video_id").notNull(),
+  scriptRevisionId: uuid("script_revision_id").notNull(),
+  scriptStage: algorithmStage("script_stage").notNull().default("script"),
+  temporaryKey: text("temporary_key").notNull(),
+  brief: text("brief").notNull(),
+  status: algorithmAssetStatus("status").notNull().default("open"),
+  assetId: uuid("asset_id").references(() => assets.id, { onDelete: "restrict" }),
+  state: text("state"),
+  reason: text("reason").notNull().default(""),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  unique("algorithm_asset_requests_script_key").on(t.scriptRevisionId, t.temporaryKey),
+  foreignKey({ columns: [t.videoId, t.scriptStage, t.scriptRevisionId], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.stage, algorithmRevisions.id], name: "algorithm_asset_requests_script_fk" }).onDelete("restrict"),
+  foreignKey({ columns: [t.assetId, t.state], foreignColumns: [assetVariants.assetId, assetVariants.state], name: "algorithm_asset_requests_variant_fk" }).onDelete("restrict"),
+  check("algorithm_asset_requests_script_stage", sql`${t.scriptStage} = 'script'`),
+  check("algorithm_asset_requests_binding", sql`${t.status} <> 'bound' OR (${t.assetId} IS NOT NULL AND ${t.state} IS NOT NULL)`),
+  check("algorithm_asset_requests_drop_reason", sql`${t.status} <> 'dropped' OR length(trim(${t.reason})) > 0`),
+]);
+
+export const algorithmOutputs = pgTable("algorithm_outputs", {
+  id: id(),
+  videoId: uuid("video_id").notNull(),
+  animationRevisionId: uuid("animation_revision_id").notNull(),
+  animationStage: algorithmStage("animation_stage").notNull().default("animation"),
+  inputFingerprint: text("input_fingerprint").notNull(),
+  rendererVersion: text("renderer_version").notNull(),
+  assetManifest: jsonb("asset_manifest").notNull(),
+  filePath: text("file_path").unique(),
+  durationFrames: integer("duration_frames").notNull(),
+  status: reviewStatus("status").notNull().default("generating"),
+  error: text("error"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  unique("algorithm_outputs_video_id").on(t.videoId, t.id),
+  foreignKey({ columns: [t.videoId, t.animationStage, t.animationRevisionId], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.stage, algorithmRevisions.id], name: "algorithm_outputs_animation_fk" }).onDelete("restrict"),
+  check("algorithm_outputs_animation_stage", sql`${t.animationStage} = 'animation'`),
+  check("algorithm_outputs_frames", sql`${t.durationFrames} BETWEEN 1 AND 5400`),
+  check("algorithm_outputs_fingerprint", sql`${t.inputFingerprint} ~ '^[a-f0-9]{64}$'`),
+]);
+
+export const algorithmVoiceClips = pgTable("algorithm_voice_clips", {
+  id: id(),
+  videoId: uuid("video_id").notNull(),
+  voiceRevisionId: uuid("voice_revision_id").notNull(),
+  cueId: text("cue_id").notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  status: voiceClipStatus("status").notNull().default("generating"),
+  filePath: text("file_path"),
+  durationMs: integer("duration_ms"),
+  error: text("error"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  unique("algorithm_voice_clips_revision_cue").on(t.voiceRevisionId, t.cueId),
+  index("algorithm_voice_clips_fingerprint").on(t.videoId, t.fingerprint),
+  // Không dùng literal enum 'voice' ở DEFAULT/CHECK: Drizzle chạy mọi migration chờ trong một transaction, nên giá trị enum vừa thêm chưa dùng được.
+  // Ràng buộc stage = 'voice' nằm ở trigger algorithm_guard_voice_clip (migration custom).
+  foreignKey({ columns: [t.videoId, t.voiceRevisionId], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.id], name: "algorithm_voice_clips_revision_fk" }).onDelete("restrict"),
+  check("algorithm_voice_clips_fingerprint", sql`${t.fingerprint} ~ '^[a-f0-9]{64}$'`),
+  check("algorithm_voice_clips_ready", sql`${t.status} <> 'ready' OR (${t.filePath} IS NOT NULL AND ${t.durationMs} IS NOT NULL AND ${t.durationMs} > 0)`),
+]);
+
+export const algorithmDecisions = pgTable("algorithm_decisions", {
+  id: id(),
+  videoId: uuid("video_id").notNull().references(() => algorithmWorkflows.videoId, { onDelete: "restrict" }),
+  revisionId: uuid("revision_id"),
+  outputId: uuid("output_id"),
+  decision: reviewDecision("decision").notNull(),
+  reason: text("reason").notNull().default(""),
+  expectedFingerprint: text("expected_fingerprint").notNull(),
+  createdAt: createdAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  foreignKey({ columns: [t.videoId, t.revisionId], foreignColumns: [algorithmRevisions.videoId, algorithmRevisions.id], name: "algorithm_decisions_revision_fk" }).onDelete("restrict"),
+  foreignKey({ columns: [t.videoId, t.outputId], foreignColumns: [algorithmOutputs.videoId, algorithmOutputs.id], name: "algorithm_decisions_output_fk" }).onDelete("restrict"),
+  unique("algorithm_decisions_revision").on(t.revisionId),
+  unique("algorithm_decisions_output").on(t.outputId),
+  check("algorithm_decisions_target", sql`(${t.revisionId} IS NOT NULL) <> (${t.outputId} IS NOT NULL)`),
+  check("algorithm_decisions_reject_reason", sql`${t.decision} <> 'rejected' OR length(trim(${t.reason})) > 0`),
+  check("algorithm_decisions_fingerprint", sql`${t.expectedFingerprint} ~ '^[a-f0-9]{64}$'`),
+]);
+
+export const playbookLessons = pgTable("playbook_lessons", {
+  id: id(),
+  lessonKey: uuid("lesson_key").notNull().defaultRandom(),
+  version: integer("version").notNull(),
+  title: text("title").notNull(),
+  stage: algorithmStage("stage").notNull(),
+  tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+  seriesId: uuid("series_id").references(() => series.id, { onDelete: "restrict" }),
+  content: jsonb("content").notNull(),
+  status: lessonStatus("status").notNull().default("proposed"),
+  reviewReason: text("review_reason").notNull().default(""),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  unique("playbook_lessons_key_version").on(t.lessonKey, t.version),
+  index("playbook_lessons_selection").on(t.stage, t.status, t.seriesId),
+  check("playbook_lessons_version", sql`${t.version} > 0`),
+  check("playbook_lessons_stage", sql`${t.stage} NOT IN ('problem', 'done')`),
+  check("playbook_lessons_review", sql`${t.status} = 'proposed' OR ${t.reviewedAt} IS NOT NULL`),
+  check("playbook_lessons_reject_reason", sql`${t.status} <> 'rejected' OR length(trim(${t.reviewReason})) > 0`),
+]);
+
+export const playbookLessonSources = pgTable("playbook_lesson_sources", {
+  id: id(),
+  lessonId: uuid("lesson_id").notNull().references(() => playbookLessons.id, { onDelete: "restrict" }),
+  revisionId: uuid("revision_id").references(() => algorithmRevisions.id, { onDelete: "restrict" }),
+  decisionId: uuid("decision_id").references(() => algorithmDecisions.id, { onDelete: "restrict" }),
+  createdAt: createdAt(),
+}, (t): PgTableExtraConfigValue[] => [
+  check("playbook_lesson_sources_target", sql`${t.revisionId} IS NOT NULL OR ${t.decisionId} IS NOT NULL`),
+]);
+
+export const generationPlaybookSnapshots = pgTable("generation_playbook_snapshots", {
+  id: id(),
+  generationRunId: uuid("generation_run_id").notNull().references(() => algorithmGenerationRuns.id, { onDelete: "restrict" }),
+  lessonId: uuid("lesson_id").notNull().references(() => playbookLessons.id, { onDelete: "restrict" }),
+  content: jsonb("content").notNull(),
+  createdAt: createdAt(),
+}, (t): PgTableExtraConfigValue[] => [unique("generation_playbook_snapshots_run_lesson").on(t.generationRunId, t.lessonId)]);
 
 export type JobRun = typeof jobRuns.$inferSelect;

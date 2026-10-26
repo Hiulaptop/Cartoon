@@ -1,0 +1,2 @@
+ALTER TABLE "algorithm_generation_runs" DROP CONSTRAINT "algorithm_generation_runs_stage";--> statement-breakpoint
+ALTER TABLE "algorithm_generation_runs" ADD CONSTRAINT "algorithm_generation_runs_stage" CHECK ("algorithm_generation_runs"."stage" <> 'done');
