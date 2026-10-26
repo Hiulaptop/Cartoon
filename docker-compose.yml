@@ -3,7 +3,7 @@
 #   cp .env.example .env      # lần đầu; điền DATABASE_URL và 9router (xem README.md)
 #   docker compose up -d --build
 #
-# migrate chạy migration rồi thoát; sau đó worker và app khởi động.
+# tts khởi động service TTS VieNeu, migrate chạy migration rồi thoát; sau đó worker và app khởi động.
 # App: http://127.0.0.1:3000 (chỉ nghe trên máy này vì chưa có đăng nhập).
 # Dừng: docker compose down
 
@@ -23,6 +23,7 @@ x-runtime-env: &runtime-env
   YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
   YOUTUBE_TOKEN_ISSUED_AT: ${YOUTUBE_TOKEN_ISSUED_AT:-}
   IMAGE_MODEL: ${IMAGE_MODEL:-}
+  LOCAL_TTS_URL: ${LOCAL_TTS_URL:-http://tts:8080}
 
 # App và worker dùng chung ./data (ảnh, video) và ./certs (CA cert của Supabase, nếu cần).
 x-runtime-volumes: &runtime-volumes
@@ -30,6 +31,21 @@ x-runtime-volumes: &runtime-volumes
   - ./certs:/app/certs:ro
 
 services:
+  tts:
+    build:
+      context: ./services/tts
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   migrate:
     build:
       context: .
@@ -49,6 +65,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      tts:
+        condition: service_healthy
 
   app:
     build:
@@ -68,6 +86,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      tts:
+        condition: service_healthy
 
   # Tunnel công khai cartoon.studev.net. Chỉ chạy khi COMPOSE_PROFILES=publish trong .env;
   # để trống (dev) thì `docker compose up` không khởi động tunnel.
@@ -82,3 +102,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
+
+volumes:
+  huggingface_cache:
+    name: cartoon_huggingface_cache
