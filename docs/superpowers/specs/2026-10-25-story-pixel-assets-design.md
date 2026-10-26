@@ -46,7 +46,7 @@ languageNotes: { cpp: string, python: string }   // lưu ý cài đặt, mỗi m
 
 ### 3.3 Kiểm máy "không code" (`src/lib/algorithm/solution-check.ts`)
 
-Từ chối (kèm lỗi cụ thể để vòng sửa của `generateStructured` dùng) nếu `insight`, `algorithm`, `correctness`, `walkthrough`, `languageNotes.*` chứa: hàng rào markdown ```` ``` ````, `#include`, `using namespace`, `int main`, dòng bắt đầu bằng `def `/`class `/`import `/`from ... import`, hoặc `;` kết thúc dòng kiểu C. `pseudocode` được miễn nhưng cũng không được chứa các mẫu trên. Danh sách mẫu nằm ở một hàm thuần duy nhất.
+Từ chối (kèm lỗi cụ thể để vòng sửa của `generateStructured` dùng) nếu `insight`, `algorithm`, `correctness`, `walkthrough`, `languageNotes.*` chứa: hàng rào markdown ```` ``` ````, `#include`, `using namespace`, `int main`, dòng bắt đầu bằng `def `/`class `/`import `/`from ... import`, hoặc `;` kết thúc dòng kiểu C. `pseudocode` cũng bị kiểm bằng cùng bộ mẫu (mẫu chỉ chặn cú pháp C++/Python, không chặn từ khóa mã giả như nếu/với mỗi). Danh sách mẫu nằm ở một hàm thuần duy nhất.
 
 ### 3.4 Kịch bản
 
@@ -98,6 +98,16 @@ Series `Pixel Farm` (tên duy nhất). 20 asset, mỗi asset seed trạng thái 
 - Phong cách: hằng số prompt pixel art ở `src/lib/assets/` (nhãn "pixel art, 16-bit, bảng màu hạn chế, viền rõ, không khử răng cưa"), gắn vào prompt sinh ảnh của mọi asset trong series này; nền `bg` không dùng nền xanh chroma như hiện tại.
 - Nạp bằng `npm run seed:pixel-farm` (tsx, idempotent): tạo series và 20 hàng `assets` + `asset_variants(base)` `draft`, rồi `enqueueJob` sinh ảnh; ảnh ra ở `pending_review`, **user duyệt từng ảnh**. Chạy lại chỉ bù asset thiếu.
 - Form tạo bài giảng: chọn series, mặc định `Pixel Farm` nếu tồn tại.
+
+## 6b. Video tự vẽ asset đã gắn (bổ sung, user duyệt 2026-10-25)
+
+Chạy thử cho thấy composition bài giảng không vẽ asset. Bổ sung: mỗi cảnh lấy `assetKeys` của kịch bản đã duyệt, tra binding `bound` ra file ảnh đã duyệt (`loadBoundAssetFiles`), dựng `sceneAssets` tất định (`buildSceneAssets`, không gọi LLM, không đổi khuôn JSON animation). `SceneStage` (`src/remotion/algorithm/scene-stage.tsx`) vẽ "sân khấu" y 1060–1520: `bg` làm nền, tối đa 4 `chr`/`prop` đứng thành hàng (nhún nhẹ theo frame, `image-rendering: pixelated`), tối đa 2 `fx` nhấp nháy ở góc trên; cảnh có code thì không vẽ. Render chép ảnh vào `publicDir/assets/`; preview dùng URL `/api/files`. Không đổi DB, không đổi `asset_manifest`.
+
+Điều chỉnh sau khi user xem video thử (duyệt 2026-10-25): video gồm **phần truyện** (1–2 cảnh đầu, tổng ≤ 25 giây, đoạn phim hoạt hình kể nhanh vấn đề) rồi **phần giảng** (hình ảnh học thuật). Chỉ cảnh truyện có `assetKeys` (vật thể/nhân vật/bối cảnh cụ thể, có một bối cảnh); cảnh giảng có `assetKeys = []`. `checkScriptRules` kiểm các luật này (`storySceneCount`, `STORY_MAX_SCENES = 2`, `STORY_MAX_SECONDS = 25`). Composition: cảnh có asset vẽ bằng `StoryScene` toàn màn hình (nền phủ kín có zoom chậm, nhân vật cỡ lớn trượt vào và nhún, hiệu ứng, tiêu đề); cảnh giảng dùng `SceneV2` như cũ, không còn "sân khấu". Prompt animation đánh dấu `story=true` để LLM không đặt `array` ở cảnh truyện.
+
+Tăng chất lượng prompt (user yêu cầu 2026-10-26): prompt bước 1 buộc LLM xác định tính chất cốt lõi và chi phí của thuật toán rồi dựng truyện quanh chúng, giữ một mục tiêu nhất quán giữa story/modeling/text, có checklist tự kiểm. Prompt kịch bản yêu cầu cảnh truyện như storyboard, đúng một key `nen_` + 1–4 key nhân vật/vật thể (kiểm máy trong `checkScriptRules`), key mang trạng thái/cảm xúc khi cần. Bước gán asset nhận truyện gốc, mô tả cảnh, lời thoại và vai trò key; chỉ `use` khi đúng thực thể, khuyến khích `newVariant` theo trạng thái và `newAsset` khi danh mục thiếu, key `nen_` phải là `bg`, tối đa 6 ảnh mới (`checkResolution`).
+
+Sửa sau lần chạy thử "Thỏ Bông" (2026-10-26): (1) `findSolutionLeaks` từ chối modeling có thao tác thuật toán hoặc O(...); (2) prompt ra đề buộc đáp án nhất quán với thuật toán chuẩn (đáp án duy nhất hoặc "in bất kỳ đáp án đúng"), không đặt luật chọn mà thuật toán không tự cho ra; (3) `keyAndTrim` lấy màu nền thật từ viền ảnh, nếu là xanh lá thì xoá vùng gần màu đó liên thông với viền (bắt được nền xanh lệch #00FF00); (4) action `same` để nhiều key cùng thực thể dùng chung một asset; (5) `SceneAssetItem.aspect` (từ kích thước biến thể) để `StoryScene` vẽ đạo cụ dạng ngang đúng tỉ lệ.
 
 ## 7. Xử lý lỗi
 

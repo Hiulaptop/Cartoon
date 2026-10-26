@@ -42,7 +42,7 @@ Hai phàn nàn còn lại (voice chưa có UI/pipeline, video chưa có animatio
 
 ### Trong phạm vi
 
-- Thêm primitive shadcn: `sonner`, `sheet`, `tooltip`, `tabs`, `badge`, `progress`, `skeleton`, `separator`.
+- Thêm primitive shadcn: `sonner`, `sheet`, `tooltip`, `badge`, `skeleton` (bỏ `tabs`, `progress`, `separator` vì chưa có chỗ dùng: stepper tự dựng, thanh job tự dựng dạng indeterminate).
 - Khung chung: root layout, sidebar hai khu, thanh đầu trang, chuông thông báo toàn cục.
 - Workspace bài giảng mới: route theo bước, stepper, trạng thái bước, "việc tiếp theo".
 - Lớp phản hồi hành động: toast, nút có trạng thái chờ, thanh trạng thái job.
@@ -62,7 +62,7 @@ Hai phàn nàn còn lại (voice chưa có UI/pipeline, video chưa có animatio
 
 - `src/app/layout.tsx`: bọc `ThemeProvider` (`next-themes`, `attribute="class"`, `defaultTheme="system"`, khớp `.dark` hiện có) và `TooltipProvider`; đặt `<Toaster />` (component shadcn).
 - `AppSidebar`: nhóm theo chức năng (**Sản xuất**: Tổng quan, Bộ phim, Project; **Hệ thống**: Jobs; **Công cụ**), có biểu tượng. Không có trang liệt kê riêng design bài giảng nên không tách nhóm theo loại; điều hướng theo loại do stepper trong từng design đảm nhận. Giữ nguyên href hiện có; mục active tính theo `pathname`.
-- `AppTopbar` (mới): breadcrumb và `NotificationBell`.
+- `AppTopbar` (mới): `NotificationBell` và nút đổi giao diện sáng/tối. Breadcrumb giữ nguyên ở `designs/[id]/layout.tsx` (đã có), tránh hai breadcrumb.
 - `designs/[id]/layout.tsx`: giữ breadcrumb, tên, bộ phim; với `kind === "algorithm"` thay dòng chữ mô tả bằng `AlgorithmShell` (xem 4.2). Với `cartoon` giữ `DesignTabs`.
 
 ### 4.2 Workspace bài giảng
@@ -124,7 +124,7 @@ Giao diện:
 
 ## 5. Phụ thuộc và cấu hình
 
-- Thêm bằng `npx shadcn@latest add sonner sheet tooltip tabs badge progress skeleton separator`: phụ thuộc mới `sonner`, `next-themes` (và `cn`, đã có). Ghim phiên bản đúng như lockfile sau khi cài; xác nhận không đổi phiên bản `next`, `react`, `remotion`.
+- Thêm bằng `npx shadcn@latest add sonner sheet tooltip badge skeleton`: phụ thuộc mới `sonner`, `next-themes` (và `cn`, đã có). Ghim phiên bản đúng như lockfile sau khi cài; xác nhận không đổi phiên bản `next`, `react`, `remotion`.
 - Không thêm biến môi trường.
 - Không đổi Dockerfile; `npm run lint && npm run build` trong stage `builder` phải qua.
 
