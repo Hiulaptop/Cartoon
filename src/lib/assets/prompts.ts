@@ -1,6 +1,7 @@
 import type { ChatMessage } from "@/lib/ninerouter/client";
 
 import type { AssetKind } from "./naming";
+import { generationSizeInfo, type AssetGenerationSize } from "./generation-size";
 
 const STYLE = "2D flat cartoon style, thick clean black outlines, simple shading, no text, no watermark";
 export type ArtStyle = "cartoon" | "pixel";
@@ -24,19 +25,23 @@ const STATE_PHRASES: Record<string, string> = {
 };
 
 // Prompt ảnh cho một biến thể. Mô tả asset giữ nguyên giữa các biến thể để nhân vật ít lệch nhất có thể.
-export function imagePrompt(kind: AssetKind, description: string, state: string, feedback?: string, style: ArtStyle = "cartoon"): string {
+export function imagePrompt(kind: AssetKind, description: string, state: string, feedback?: string, style: ArtStyle = "cartoon", generationSize?: AssetGenerationSize | null): string {
   const parts = [description.trim()];
   const phrase = STATE_PHRASES[state];
   if (phrase) parts.push(phrase);
   const framing: Record<AssetKind, string> = {
     chr: "full body, front view, centered",
-    bg: "wide 16:9 background scene, no characters",
+    bg: generationSize ? `${generationSizeInfo(generationSize).aspectLabel} background scene, no characters` : "wide 16:9 background scene, no characters",
     prop: "single object centered, nothing else in the frame",
     fx: "single effect centered, nothing else in the frame",
   };
   parts.push(framing[kind]);
   parts.push(style === "pixel" ? STYLE_PIXEL : STYLE);
   if (kind !== "bg") parts.push(GREEN_BG);
+  if (generationSize) {
+    const preset = generationSizeInfo(generationSize);
+    parts.push(`requested canvas ${preset.width}x${preset.height} pixels, aspect ratio ${preset.aspectLabel}`);
+  }
   if (feedback?.trim()) parts.push(`Fix these problems from the previous attempt: ${feedback.trim()}`);
   return parts.join(", ");
 }

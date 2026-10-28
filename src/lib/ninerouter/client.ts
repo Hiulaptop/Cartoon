@@ -1,11 +1,19 @@
 // Client 9router (OpenAI-compatible). Dùng chung cho app (server) và worker,
 // nên không import "server-only": gói đó ném lỗi khi chạy ngoài React Server Components.
+import { imageTransportSize } from "./image-size";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 export type TokenUsage = { promptTokens: number; completionTokens: number; totalTokens: number };
 export type ChatResult = { content: string; model: string; usage: TokenUsage };
 export type ImageFormat = { mime: "image/jpeg" | "image/png" | "image/webp"; ext: "jpg" | "png" | "webp" };
-export type GeneratedImage = ImageFormat & { data: Buffer };
+export type GeneratedImage = ImageFormat & { data: Buffer; transportSize: string | null };
+
+export class ImageGenerationRequestError extends Error {
+  constructor(public readonly status: number) {
+    super(`9router image HTTP ${status}: yêu cầu sinh ảnh không thành công`);
+    this.name = "ImageGenerationRequestError";
+  }
+}
 
 function config(): { baseUrl: string; apiKey: string } {
   const baseUrl = process.env.NINE_ROUTER_BASE_URL;
@@ -72,16 +80,21 @@ export function sniffImage(buf: Buffer): ImageFormat {
 export async function generateImage(input: {
   model: string;
   prompt: string;
+  size?: string;
   timeoutMs?: number;
 }): Promise<GeneratedImage> {
   const { baseUrl, apiKey } = config();
+  const transportSize = imageTransportSize(input.model, input.size);
   const res = await fetch(`${baseUrl}/images/generations?response_format=binary`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: input.model, prompt: input.prompt }),
+    body: JSON.stringify({ model: input.model, prompt: input.prompt, ...(transportSize ? { size: transportSize } : {}) }),
     signal: AbortSignal.timeout(input.timeoutMs ?? 180_000),
   });
-  if (!res.ok) throw new Error(`9router image HTTP ${res.status}: ${(await res.text()).slice(0, 500)}`);
+  if (!res.ok) {
+    await res.body?.cancel();
+    throw new ImageGenerationRequestError(res.status);
+  }
   const data = Buffer.from(await res.arrayBuffer());
-  return { data, ...sniffImage(data) };
+  return { data, ...sniffImage(data), transportSize: transportSize ?? null };
 }

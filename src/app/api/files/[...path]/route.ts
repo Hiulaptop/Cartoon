@@ -7,6 +7,8 @@ import { dataFileInfo, dataPath } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 const CONTENT_TYPES: Record<string, string> = {
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".webp": "image/webp",

@@ -3,6 +3,7 @@ import type { JobType } from "@/lib/queue/jobs";
 import { writeDataFile } from "@/lib/storage";
 
 import { generateBase, generateVariant } from "./asset-jobs";
+import { generateAudio } from "./audio-jobs";
 import { generateScript } from "./script-jobs";
 import { generateScenes } from "./scene-jobs";
 import { renderVideo } from "./render-jobs";
@@ -20,6 +21,7 @@ import { PermanentJobError, type JobHandler } from "./job-types";
 export { PermanentJobError };
 
 export const handlers: Record<JobType, JobHandler> = {
+  "audio.generate": generateAudio,
   // Kiểm tra đường app → hàng đợi → worker → DB, và worker ghi được vào DATA_DIR.
   "system.ping": async (_payload, ctx) => {
     const at = new Date().toISOString();

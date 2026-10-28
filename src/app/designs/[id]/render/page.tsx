@@ -5,6 +5,9 @@ import { RenderReview, StartRenderButton } from "@/components/render/render-revi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { timeAgo } from "@/lib/format";
 import { getRenders } from "@/lib/render/queries";
+import { latestTimeline } from "@/lib/audio/repository";
+import { loadRenderInput } from "@/lib/render/input";
+import { visualFingerprint } from "@/lib/audio/fingerprint";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +28,18 @@ export default async function RenderVideoPage({ params }: { params: Promise<{ id
   if (!data) notFound();
   const { video, rows, progress } = data;
   const busy = rows.some((r) => r.status === "generating");
+  const latest = await latestTimeline(videoId);
+  let ready = false;
+  if (latest?.status === "approved") {
+    try { ready = latest.visualFingerprint === visualFingerprint((await loadRenderInput(videoId)).visual); } catch { ready = false; }
+  }
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <AutoRefresh active={busy} />
       <div>
       </div>
-      {video.status === "rendering" && !busy && <StartRenderButton videoId={videoId} />}
+      {video.status === "rendering" && !busy && <StartRenderButton videoId={videoId} voiceover={latest ? { id: latest.id, version: latest.version, ready } : null} />}
       {video.status !== "rendering" && rows.length === 0 && (
         <p className="text-sm text-muted-foreground">Video chưa ở bước render (cần duyệt đủ mọi cảnh ở bước phân cảnh).</p>
       )}

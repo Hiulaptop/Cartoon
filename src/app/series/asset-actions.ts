@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { assetNameError, isAllowedState, isAssetKind } from "@/lib/assets/naming";
+import { parseGenerationSize } from "@/lib/assets/generation-size";
 import { getDb } from "@/lib/db/client";
 import { assets, assetVariants, reviews } from "@/lib/db/schema";
 import { resolveProposalsAfterApproval } from "@/lib/casting/queries";
@@ -37,9 +38,12 @@ export async function createAsset(_prev: FormState, form: FormData): Promise<For
   if (!seriesId) return { error: "Thiếu bộ phim" };
   if (!isAssetKind(kind)) return { error: "Chọn loại asset" };
   if (brief.length < 10) return { error: "Mô tả ngắn quá (ít nhất 10 ký tự)" };
+  let generationSize;
+  try { generationSize = parseGenerationSize(form.get("generationSize")); }
+  catch { return { error: "Chọn kích thước yêu cầu trong danh sách preset" }; }
   // assetId tạo trước để job chạy lại không tạo asset trùng.
   const assetId = randomUUID();
-  await enqueueJob("asset.generate_base", { assetId, seriesId, kind, brief, displayName }, { type: "asset", id: assetId });
+  await enqueueJob("asset.generate_base", { assetId, seriesId, kind, brief, displayName, generationSize }, { type: "asset", id: assetId });
   revalidatePath(`/series/${seriesId}`);
   redirect(`/series/${seriesId}`);
 }
