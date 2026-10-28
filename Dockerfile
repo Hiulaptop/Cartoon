@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN node -e "import('@remotion/renderer').then(m => m.ensureBrowser()).then(() => console.log('browser ok'))" \
  && mkdir -p /app/node_modules/.remotion \
  && chown -R node:node /app/.remotion /app/node_modules/.remotion
-COPY package.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json ./
 COPY drizzle ./drizzle
 COPY src ./src
 USER node
@@ -36,11 +36,11 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
 FROM base AS builder
-ENV NEXT_TELEMETRY_DISABLED=1 \
-    NODE_OPTIONS=--max-old-space-size=4096
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG BUILD_NODE_OPTIONS="--max-old-space-size=4096"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run lint && npm run build
+RUN NODE_OPTIONS="$BUILD_NODE_OPTIONS" npm run lint && NODE_OPTIONS="$BUILD_NODE_OPTIONS" npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production \

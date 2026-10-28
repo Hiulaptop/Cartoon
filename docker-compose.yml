@@ -12,6 +12,7 @@ name: cartoon
 x-runtime-env: &runtime-env
   DATABASE_URL: "${DATABASE_URL:?thiếu DATABASE_URL trong .env - xem README.md}"
   DATABASE_CA_CERT: ${DATABASE_CA_CERT:-}
+  DATABASE_SSL_MODE: ${DATABASE_SSL_MODE:-verify-full}
   DATA_DIR: /app/data
   NINE_ROUTER_BASE_URL: ${NINE_ROUTER_BASE_URL:-}
   NINE_ROUTER_API_KEY: ${NINE_ROUTER_API_KEY:-}
