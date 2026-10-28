@@ -1,0 +1,21 @@
+# Chạy sau npm run db:local:start. DB được quản lý bởi Supabase CLI.
+x-local-db: &local-db
+  DATABASE_URL: "${LOCAL_DATABASE_URL:?chạy npm run db:local:start trước để cấu hình DB local}"
+  DATABASE_SSL_MODE: disable
+  DATABASE_CA_CERT: ""
+
+services:
+  migrate:
+    environment: *local-db
+    networks: [default, supabase-local]
+  worker:
+    environment: *local-db
+    networks: [default, supabase-local]
+  app:
+    environment: *local-db
+    networks: [default, supabase-local]
+
+networks:
+  supabase-local:
+    external: true
+    name: cartoon-local

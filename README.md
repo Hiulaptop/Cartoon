@@ -4,6 +4,41 @@ Quy trình làm phim hoạt hình 2D tiếng Anh cho YouTube, 7 bước từ ass
 
 Next.js 15 · shadcn/ui · Tailwind CSS v4 · Postgres trên Supabase (Drizzle ORM, hàng đợi pgmq) · worker Node · 9router.
 
+## Kích thước khi tạo asset
+
+Form tạo asset có **Kích thước yêu cầu**: Mặc định model, 1024×1024, 1920×1080, 1080×1920, 1536×1024 và 1024×1536. Lựa chọn lưu theo asset, các biến thể/retry kế thừa; V1 không đổi preset sau tạo. Asset cũ giữ Mặc định model.
+
+Trang asset phân biệt ảnh nguồn model thực trả và PNG sau tách nền/trim; khi nguồn khác preset sẽ có cảnh báo. Không resize để giả kích thước yêu cầu. Với Antigravity (`ag/`), preset ngang1920×1080 gửi wire1792x1024, dọc1080×1920 gửi1024x1792 để chọn tỷ lệ theo9router0.5.104; không cam kết pixel native. Jobs metrics ghi requestedSize, transportSize, sourceWidth/sourceHeight và width/height PNG. Mặc định model bỏ hẳn size trong request.
+
+## Chạy local với Supabase riêng
+
+Yêu cầu Docker Desktop đang chạy Linux containers và Node.js 22 trở lên. Supabase CLI 2.121.0 đã pin trong devDependencies; bản hiện tại dùng Next.js 15.5.28, React 19.1.0, image Node 22 và Supabase Postgres 17. Không cần tài khoản Supabase Cloud hoặc mật khẩu DB của teammate.
+
+```powershell
+npm ci
+npm run db:local:start
+docker compose -f docker-compose.yml -f docker-compose.local.yml build
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --no-deps --exit-code-from migrate migrate
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --no-deps app worker
+```
+
+Mở app tại http://127.0.0.1:3000 và Supabase Studio tại http://127.0.0.1:54323. Chọn **Ping worker** ở Tổng quan rồi xem Jobs để xác nhận app, DB và worker hoạt động.
+
+`db:local:start` tạo network `cartoon-local` chỉ publish loopback, khởi động Supabase project `cartoon-local` và điền cấu hình local vào `.env` (backup trong `.superpowers/local-db/`). Các giá trị 9router được giữ nguyên; nếu `.env` đang trỏ DB khác thì helper từ chối ghi đè. Lần đầu cần tải các image Docker nên có thể mất vài phút.
+
+Helper ép port về `127.0.0.1` ngay khi CLI tạo container qua một proxy Docker API tạm thời dùng named pipe riêng trên Windows (Unix socket trong thư mục chỉ user được truy cập trên Linux/macOS), rồi kiểm tra lại actual bindings. Proxy không mở cổng TCP, chỉ hoạt động lúc start và không thay cấu hình Docker daemon.
+
+Analytics/Logflare được tắt vì Vector của CLI trên Windows yêu cầu Docker TCP API. Studio vẫn quản lý database; xem log app/worker bằng `docker compose logs app worker`.
+
+- Trên Windows: `DATABASE_URL` dùng `127.0.0.1:54322`.
+- Trong Docker: override dùng `LOCAL_DATABASE_URL` trỏ `supabase_db_cartoon-local:5432` qua network chung.
+- `DATABASE_SSL_MODE=disable` chỉ cho phép hostname local của Cartoon. Cloud mặc định `verify-full`; khi chuyển lại Cloud phải đổi mode và CA cert tương ứng.
+- Drizzle là nguồn migration duy nhất cho ứng dụng. Không dùng Supabase reset/push để chạy lại SQL Drizzle. Migration `0002` xóa dữ liệu nghiệp vụ nếu chưa áp dụng; chỉ chạy sau khi xác nhận đúng DB local mới, hoặc đã xử lý backup cho dữ liệu cũ.
+
+Kiểm tra trạng thái bằng `npm run db:local:status` (không in credentials). Dừng app/worker và Supabase bằng `npm run db:local:stop`; dữ liệu được giữ lại. Để chạy lại: `npm run db:local:start`, rồi lệnh `up -d --no-deps app worker` ở trên. Không dùng `--no-backup` hoặc xóa Docker volume nếu muốn giữ dữ liệu.
+
+Nguồn cấu hình: [Supabase local development](https://supabase.com/docs/guides/local-development/cli/getting-started), [Node IPC](https://nodejs.org/api/net.html#ipc-support), [Node dotenv](https://nodejs.org/api/environment_variables.html), [pg SSL](https://node-postgres.com/features/ssl), [Next.js memory usage](https://nextjs.org/docs/15/app/guides/memory-usage).
+
 ## Thành phần
 
 | Service | Vai trò |

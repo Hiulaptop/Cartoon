@@ -47,3 +47,6 @@ next-env.d.ts
 # CA cert tải từ Supabase (Database Settings → SSL Configuration); không commit
 /certs/*
 !/certs/.gitkeep
+
+# Local execution logs, env backups and agent scratch
+/.superpowers/

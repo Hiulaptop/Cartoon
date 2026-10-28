@@ -1,0 +1,17 @@
+name: cartoon-animated-drawings-spike
+services:
+  sample:
+    image: cartoon-animated-drawings-spike:b859684
+    build:
+      context: ../../../data/experiments/animated-drawings/upstream
+      dockerfile: ../../../../scripts/spikes/animated-drawings/Dockerfile
+    cpus: 2
+    mem_limit: 4g
+    memswap_limit: 4g
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    volumes:
+      - ./sample.yaml:/sample.yaml:ro
+      - ../../../data/experiments/animated-drawings/2026-10-23-r1:/output

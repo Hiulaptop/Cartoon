@@ -1,12 +1,14 @@
 import { and, eq } from "drizzle-orm";
+import sharp from "sharp";
 
 import { keyAndTrim, toPng } from "@/lib/assets/image";
 import { assetNameError, isAllowedState, isAssetKind, toAssetName, type AssetKind } from "@/lib/assets/naming";
 import { PIXEL_FARM_SERIES } from "@/lib/assets/pixel-farm";
 import { imagePrompt, parseProposal, proposalMessages, type ArtStyle } from "@/lib/assets/prompts";
+import { generationSizeInfo, parseGenerationSize, type AssetGenerationSize } from "@/lib/assets/generation-size";
 import { getDb } from "@/lib/db/client";
 import { assets, assetVariants, series } from "@/lib/db/schema";
-import { chat, generateImage, requireModel } from "@/lib/ninerouter/client";
+import { chat, generateImage, ImageGenerationRequestError, requireModel } from "@/lib/ninerouter/client";
 import type { JobPayload } from "@/lib/queue/jobs";
 import { writeDataFile } from "@/lib/storage";
 
@@ -36,31 +38,40 @@ async function styleOfSeries(seriesId: string): Promise<ArtStyle> {
 }
 
 // Sinh ảnh cho một biến thể, xử lý, lưu file, chuyển sang chờ duyệt.
-async function renderVariant(assetId: string, kind: AssetKind, description: string, state: string, feedback: string | undefined, style: ArtStyle) {
+function assetSize(input: unknown): AssetGenerationSize | null {
+  try { return parseGenerationSize(input); }
+  catch { throw new PermanentJobError("Kích thước yêu cầu của asset không hợp lệ"); }
+}
+
+async function renderVariant(assetId: string, kind: AssetKind, description: string, state: string, generationSize: AssetGenerationSize | null, feedback: string | undefined, style: ArtStyle) {
   const db = getDb();
-  const prompt = imagePrompt(kind, description, state, feedback, style);
+  const prompt = imagePrompt(kind, description, state, feedback, style, generationSize);
   const where = and(eq(assetVariants.assetId, assetId), eq(assetVariants.state, state));
   await db
     .insert(assetVariants)
     .values({ assetId, state, prompt, status: "generating" })
     .onConflictDoUpdate({
       target: [assetVariants.assetId, assetVariants.state],
-      set: { prompt, status: "generating" },
+      set: { prompt, status: "generating", sourceWidth: null, sourceHeight: null },
     });
 
   try {
     const model = requireModel("IMAGE_MODEL");
-    const image = await generateImage({ model, prompt });
+    const image = await generateImage({ model, prompt, size: generationSize ?? undefined });
+    const source = await sharp(image.data).metadata();
+    if (!source.width || !source.height) throw new Error("Ảnh nguồn không có kích thước hợp lệ");
     const processed = kind === "bg" ? await toPng(image.data) : await keyAndTrim(image.data);
     const filePath = `assets/${assetId}/${state}.png`;
     await writeDataFile(filePath, processed.data);
     await db
       .update(assetVariants)
-      .set({ filePath, width: processed.width, height: processed.height, status: "pending_review" })
+      .set({ filePath, width: processed.width, height: processed.height, sourceWidth: source.width, sourceHeight: source.height, status: "pending_review" })
       .where(where);
-    return { model, state, width: processed.width, height: processed.height, sourceMime: image.mime };
+    const requested = generationSize ? generationSizeInfo(generationSize) : null;
+    return { model, state, requestedSize: generationSize, transportSize: image.transportSize, sourceWidth: source.width, sourceHeight: source.height, sizeMismatch: requested ? source.width !== requested.width || source.height !== requested.height : null, width: processed.width, height: processed.height, sourceMime: image.mime };
   } catch (error) {
     await db.update(assetVariants).set({ status: "failed" }).where(where);
+    if (error instanceof ImageGenerationRequestError && (error.status === 400 || error.status === 422)) throw new PermanentJobError(error.message);
     throw error;
   }
 }
@@ -78,6 +89,7 @@ export async function generateBase(payload: JobPayload) {
   let [asset] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
   let usage: unknown = null;
   if (!asset) {
+    const generationSize = assetSize(payload.generationSize);
     const model = requireModel("LLM_WRITER_MODEL");
     const res = await chat({ model, messages: proposalMessages(kind, brief), temperature: 0.4 });
     usage = { model: res.model, ...res.usage };
@@ -88,11 +100,11 @@ export async function generateBase(payload: JobPayload) {
     const displayName = typeof payload.displayName === "string" && payload.displayName ? payload.displayName : proposal.displayName;
     [asset] = await db
       .insert(assets)
-      .values({ id: assetId, seriesId, name, kind, displayName, description: proposal.description, status: "generating" })
+      .values({ id: assetId, seriesId, name, kind, displayName, description: proposal.description, generationSize, status: "generating" })
       .returning();
   }
 
-  const result = await renderVariant(asset.id, kind, asset.description, "base", undefined, await styleOfSeries(asset.seriesId));
+  const result = await renderVariant(asset.id, asset.kind, asset.description, "base", assetSize(asset.generationSize), undefined, await styleOfSeries(asset.seriesId));
   await db.update(assets).set({ status: "pending_review" }).where(eq(assets.id, asset.id));
   return { name: asset.name, llm: usage, image: result };
 }
@@ -106,7 +118,7 @@ export async function generateVariant(payload: JobPayload) {
   const [asset] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
   if (!asset) throw new PermanentJobError(`Không có asset ${assetId}`);
   if (!isAllowedState(asset.kind, state)) throw new PermanentJobError(`Trạng thái ${state} không hợp lệ cho ${asset.kind}`);
-  const image = await renderVariant(asset.id, asset.kind, asset.description, state, feedback, await styleOfSeries(asset.seriesId));
+  const image = await renderVariant(asset.id, asset.kind, asset.description, state, assetSize(asset.generationSize), feedback, await styleOfSeries(asset.seriesId));
   if (state === "base") await db.update(assets).set({ status: "pending_review" }).where(eq(assets.id, asset.id));
   return { name: asset.name, image };
 }

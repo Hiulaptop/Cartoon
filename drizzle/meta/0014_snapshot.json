@@ -1,0 +1,3765 @@
+{
+  "id": "3b290a6b-d577-413a-b518-d1badd5f4754",
+  "prevId": "5c41467d-2dfb-4235-944b-1cd6350cb7c0",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.algorithm_asset_requests": {
+      "name": "algorithm_asset_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "script_revision_id": {
+          "name": "script_revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "script_stage": {
+          "name": "script_stage",
+          "type": "algorithm_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'script'"
+        },
+        "temporary_key": {
+          "name": "temporary_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "algorithm_asset_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "algorithm_asset_requests_asset_id_assets_id_fk": {
+          "name": "algorithm_asset_requests_asset_id_assets_id_fk",
+          "tableFrom": "algorithm_asset_requests",
+          "tableTo": "assets",
+          "columnsFrom": [
+            "asset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_asset_requests_script_fk": {
+          "name": "algorithm_asset_requests_script_fk",
+          "tableFrom": "algorithm_asset_requests",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "script_stage",
+            "script_revision_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "stage",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_asset_requests_variant_fk": {
+          "name": "algorithm_asset_requests_variant_fk",
+          "tableFrom": "algorithm_asset_requests",
+          "tableTo": "asset_variants",
+          "columnsFrom": [
+            "asset_id",
+            "state"
+          ],
+          "columnsTo": [
+            "asset_id",
+            "state"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_asset_requests_script_key": {
+          "name": "algorithm_asset_requests_script_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "script_revision_id",
+            "temporary_key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_asset_requests_script_stage": {
+          "name": "algorithm_asset_requests_script_stage",
+          "value": "\"algorithm_asset_requests\".\"script_stage\" = 'script'"
+        },
+        "algorithm_asset_requests_binding": {
+          "name": "algorithm_asset_requests_binding",
+          "value": "\"algorithm_asset_requests\".\"status\" <> 'bound' OR (\"algorithm_asset_requests\".\"asset_id\" IS NOT NULL AND \"algorithm_asset_requests\".\"state\" IS NOT NULL)"
+        },
+        "algorithm_asset_requests_drop_reason": {
+          "name": "algorithm_asset_requests_drop_reason",
+          "value": "\"algorithm_asset_requests\".\"status\" <> 'dropped' OR length(trim(\"algorithm_asset_requests\".\"reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_decisions": {
+      "name": "algorithm_decisions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision_id": {
+          "name": "revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "output_id": {
+          "name": "output_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decision": {
+          "name": "decision",
+          "type": "review_decision",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "expected_fingerprint": {
+          "name": "expected_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "algorithm_decisions_video_id_algorithm_workflows_video_id_fk": {
+          "name": "algorithm_decisions_video_id_algorithm_workflows_video_id_fk",
+          "tableFrom": "algorithm_decisions",
+          "tableTo": "algorithm_workflows",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "video_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_decisions_revision_fk": {
+          "name": "algorithm_decisions_revision_fk",
+          "tableFrom": "algorithm_decisions",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "revision_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_decisions_output_fk": {
+          "name": "algorithm_decisions_output_fk",
+          "tableFrom": "algorithm_decisions",
+          "tableTo": "algorithm_outputs",
+          "columnsFrom": [
+            "video_id",
+            "output_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_decisions_revision": {
+          "name": "algorithm_decisions_revision",
+          "nullsNotDistinct": false,
+          "columns": [
+            "revision_id"
+          ]
+        },
+        "algorithm_decisions_output": {
+          "name": "algorithm_decisions_output",
+          "nullsNotDistinct": false,
+          "columns": [
+            "output_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_decisions_target": {
+          "name": "algorithm_decisions_target",
+          "value": "(\"algorithm_decisions\".\"revision_id\" IS NOT NULL) <> (\"algorithm_decisions\".\"output_id\" IS NOT NULL)"
+        },
+        "algorithm_decisions_reject_reason": {
+          "name": "algorithm_decisions_reject_reason",
+          "value": "\"algorithm_decisions\".\"decision\" <> 'rejected' OR length(trim(\"algorithm_decisions\".\"reason\")) > 0"
+        },
+        "algorithm_decisions_fingerprint": {
+          "name": "algorithm_decisions_fingerprint",
+          "value": "\"algorithm_decisions\".\"expected_fingerprint\" ~ '^[a-f0-9]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_generation_runs": {
+      "name": "algorithm_generation_runs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stage": {
+          "name": "stage",
+          "type": "algorithm_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "thread_id": {
+          "name": "thread_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_key": {
+          "name": "request_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_snapshot": {
+          "name": "input_snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_fingerprint": {
+          "name": "input_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "algorithm_run_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "interrupt_id": {
+          "name": "interrupt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "job_run_id": {
+          "name": "job_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contract_version": {
+          "name": "contract_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "metrics": {
+          "name": "metrics",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "algorithm_generation_runs_status": {
+          "name": "algorithm_generation_runs_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "algorithm_generation_runs_video_id_algorithm_workflows_video_id_fk": {
+          "name": "algorithm_generation_runs_video_id_algorithm_workflows_video_id_fk",
+          "tableFrom": "algorithm_generation_runs",
+          "tableTo": "algorithm_workflows",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "video_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_generation_runs_job_run_id_job_runs_id_fk": {
+          "name": "algorithm_generation_runs_job_run_id_job_runs_id_fk",
+          "tableFrom": "algorithm_generation_runs",
+          "tableTo": "job_runs",
+          "columnsFrom": [
+            "job_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_generation_runs_request_key_unique": {
+          "name": "algorithm_generation_runs_request_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "request_key"
+          ]
+        },
+        "algorithm_generation_runs_video_id": {
+          "name": "algorithm_generation_runs_video_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "id"
+          ]
+        },
+        "algorithm_generation_runs_video_stage_id": {
+          "name": "algorithm_generation_runs_video_stage_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "stage",
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_generation_runs_fingerprint": {
+          "name": "algorithm_generation_runs_fingerprint",
+          "value": "\"algorithm_generation_runs\".\"input_fingerprint\" ~ '^[a-f0-9]{64}$'"
+        },
+        "algorithm_generation_runs_stage": {
+          "name": "algorithm_generation_runs_stage",
+          "value": "\"algorithm_generation_runs\".\"stage\" <> 'done'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_outputs": {
+      "name": "algorithm_outputs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animation_revision_id": {
+          "name": "animation_revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "animation_stage": {
+          "name": "animation_stage",
+          "type": "algorithm_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'animation'"
+        },
+        "input_fingerprint": {
+          "name": "input_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "renderer_version": {
+          "name": "renderer_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_manifest": {
+          "name": "asset_manifest",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_frames": {
+          "name": "duration_frames",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'generating'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "algorithm_outputs_animation_fk": {
+          "name": "algorithm_outputs_animation_fk",
+          "tableFrom": "algorithm_outputs",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "animation_stage",
+            "animation_revision_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "stage",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_outputs_file_path_unique": {
+          "name": "algorithm_outputs_file_path_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_path"
+          ]
+        },
+        "algorithm_outputs_video_id": {
+          "name": "algorithm_outputs_video_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_outputs_animation_stage": {
+          "name": "algorithm_outputs_animation_stage",
+          "value": "\"algorithm_outputs\".\"animation_stage\" = 'animation'"
+        },
+        "algorithm_outputs_frames": {
+          "name": "algorithm_outputs_frames",
+          "value": "\"algorithm_outputs\".\"duration_frames\" BETWEEN 1 AND 5400"
+        },
+        "algorithm_outputs_fingerprint": {
+          "name": "algorithm_outputs_fingerprint",
+          "value": "\"algorithm_outputs\".\"input_fingerprint\" ~ '^[a-f0-9]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_revision_inputs": {
+      "name": "algorithm_revision_inputs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision_id": {
+          "name": "revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_revision_id": {
+          "name": "input_revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "algorithm_revision_inputs_output_fk": {
+          "name": "algorithm_revision_inputs_output_fk",
+          "tableFrom": "algorithm_revision_inputs",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "revision_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_revision_inputs_input_fk": {
+          "name": "algorithm_revision_inputs_input_fk",
+          "tableFrom": "algorithm_revision_inputs",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "input_revision_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_revision_inputs_edge": {
+          "name": "algorithm_revision_inputs_edge",
+          "nullsNotDistinct": false,
+          "columns": [
+            "revision_id",
+            "input_revision_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_revision_inputs_not_self": {
+          "name": "algorithm_revision_inputs_not_self",
+          "value": "\"algorithm_revision_inputs\".\"revision_id\" <> \"algorithm_revision_inputs\".\"input_revision_id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_revisions": {
+      "name": "algorithm_revisions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "video_kind": {
+          "name": "video_kind",
+          "type": "video_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'algorithm'"
+        },
+        "stage": {
+          "name": "stage",
+          "type": "algorithm_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contract_version": {
+          "name": "contract_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "algorithm_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "generation_run_id": {
+          "name": "generation_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "input_fingerprint": {
+          "name": "input_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "algorithm_revisions_video_kind_fk": {
+          "name": "algorithm_revisions_video_kind_fk",
+          "tableFrom": "algorithm_revisions",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id",
+            "video_kind"
+          ],
+          "columnsTo": [
+            "id",
+            "kind"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_revisions_generation_fk": {
+          "name": "algorithm_revisions_generation_fk",
+          "tableFrom": "algorithm_revisions",
+          "tableTo": "algorithm_generation_runs",
+          "columnsFrom": [
+            "video_id",
+            "generation_run_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_revisions_run_stage_fk": {
+          "name": "algorithm_revisions_run_stage_fk",
+          "tableFrom": "algorithm_revisions",
+          "tableTo": "algorithm_generation_runs",
+          "columnsFrom": [
+            "video_id",
+            "stage",
+            "generation_run_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "stage",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_revisions_video_stage_version": {
+          "name": "algorithm_revisions_video_stage_version",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "stage",
+            "version"
+          ]
+        },
+        "algorithm_revisions_video_id": {
+          "name": "algorithm_revisions_video_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "id"
+          ]
+        },
+        "algorithm_revisions_video_stage_id": {
+          "name": "algorithm_revisions_video_stage_id",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "stage",
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_revisions_kind": {
+          "name": "algorithm_revisions_kind",
+          "value": "\"algorithm_revisions\".\"video_kind\" = 'algorithm'"
+        },
+        "algorithm_revisions_stage": {
+          "name": "algorithm_revisions_stage",
+          "value": "\"algorithm_revisions\".\"stage\" NOT IN ('render', 'done')"
+        },
+        "algorithm_revisions_versions": {
+          "name": "algorithm_revisions_versions",
+          "value": "\"algorithm_revisions\".\"version\" > 0 AND \"algorithm_revisions\".\"contract_version\" > 0"
+        },
+        "algorithm_revisions_fingerprint": {
+          "name": "algorithm_revisions_fingerprint",
+          "value": "\"algorithm_revisions\".\"input_fingerprint\" ~ '^[a-f0-9]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_voice_clips": {
+      "name": "algorithm_voice_clips",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "voice_revision_id": {
+          "name": "voice_revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cue_id": {
+          "name": "cue_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "algorithm_voice_clip_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'generating'"
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "algorithm_voice_clips_fingerprint": {
+          "name": "algorithm_voice_clips_fingerprint",
+          "columns": [
+            {
+              "expression": "video_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fingerprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "algorithm_voice_clips_revision_fk": {
+          "name": "algorithm_voice_clips_revision_fk",
+          "tableFrom": "algorithm_voice_clips",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "voice_revision_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "algorithm_voice_clips_revision_cue": {
+          "name": "algorithm_voice_clips_revision_cue",
+          "nullsNotDistinct": false,
+          "columns": [
+            "voice_revision_id",
+            "cue_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_voice_clips_fingerprint": {
+          "name": "algorithm_voice_clips_fingerprint",
+          "value": "\"algorithm_voice_clips\".\"fingerprint\" ~ '^[a-f0-9]{64}$'"
+        },
+        "algorithm_voice_clips_ready": {
+          "name": "algorithm_voice_clips_ready",
+          "value": "\"algorithm_voice_clips\".\"status\" <> 'ready' OR (\"algorithm_voice_clips\".\"file_path\" IS NOT NULL AND \"algorithm_voice_clips\".\"duration_ms\" IS NOT NULL AND \"algorithm_voice_clips\".\"duration_ms\" > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.algorithm_workflows": {
+      "name": "algorithm_workflows",
+      "schema": "",
+      "columns": {
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "video_kind": {
+          "name": "video_kind",
+          "type": "video_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'algorithm'"
+        },
+        "stage": {
+          "name": "stage",
+          "type": "algorithm_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'problem'"
+        },
+        "concurrency_version": {
+          "name": "concurrency_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "active_problem_id": {
+          "name": "active_problem_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_problem_id": {
+          "name": "accepted_problem_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_solution_id": {
+          "name": "active_solution_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_solution_id": {
+          "name": "accepted_solution_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_combo_id": {
+          "name": "active_combo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_combo_id": {
+          "name": "accepted_combo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_script_id": {
+          "name": "active_script_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_script_id": {
+          "name": "accepted_script_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_assets_id": {
+          "name": "active_assets_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_assets_id": {
+          "name": "accepted_assets_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_voice_id": {
+          "name": "active_voice_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_voice_id": {
+          "name": "accepted_voice_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_animation_id": {
+          "name": "active_animation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_animation_id": {
+          "name": "accepted_animation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active_output_id": {
+          "name": "active_output_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_output_id": {
+          "name": "accepted_output_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "algorithm_workflows_video_kind_fk": {
+          "name": "algorithm_workflows_video_kind_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id",
+            "video_kind"
+          ],
+          "columnsTo": [
+            "id",
+            "kind"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_output_fk": {
+          "name": "algorithm_workflows_active_output_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_outputs",
+          "columnsFrom": [
+            "video_id",
+            "active_output_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_output_fk": {
+          "name": "algorithm_workflows_accepted_output_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_outputs",
+          "columnsFrom": [
+            "video_id",
+            "accepted_output_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_problem_fk": {
+          "name": "algorithm_workflows_active_problem_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_problem_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_problem_fk": {
+          "name": "algorithm_workflows_accepted_problem_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_problem_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_solution_fk": {
+          "name": "algorithm_workflows_active_solution_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_solution_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_solution_fk": {
+          "name": "algorithm_workflows_accepted_solution_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_solution_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_combo_fk": {
+          "name": "algorithm_workflows_active_combo_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_combo_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_combo_fk": {
+          "name": "algorithm_workflows_accepted_combo_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_combo_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_script_fk": {
+          "name": "algorithm_workflows_active_script_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_script_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_script_fk": {
+          "name": "algorithm_workflows_accepted_script_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_script_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_assets_fk": {
+          "name": "algorithm_workflows_active_assets_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_assets_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_assets_fk": {
+          "name": "algorithm_workflows_accepted_assets_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_assets_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_voice_fk": {
+          "name": "algorithm_workflows_active_voice_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_voice_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_voice_fk": {
+          "name": "algorithm_workflows_accepted_voice_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_voice_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_active_animation_fk": {
+          "name": "algorithm_workflows_active_animation_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "active_animation_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "algorithm_workflows_accepted_animation_fk": {
+          "name": "algorithm_workflows_accepted_animation_fk",
+          "tableFrom": "algorithm_workflows",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "video_id",
+            "accepted_animation_id"
+          ],
+          "columnsTo": [
+            "video_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "algorithm_workflows_kind": {
+          "name": "algorithm_workflows_kind",
+          "value": "\"algorithm_workflows\".\"video_kind\" = 'algorithm'"
+        },
+        "algorithm_workflows_version": {
+          "name": "algorithm_workflows_version",
+          "value": "\"algorithm_workflows\".\"concurrency_version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.asset_proposals": {
+      "name": "asset_proposals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "proposal_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision": {
+          "name": "decision",
+          "type": "proposal_decision",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "asset_proposals_video_id_videos_id_fk": {
+          "name": "asset_proposals_video_id_videos_id_fk",
+          "tableFrom": "asset_proposals",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "asset_proposals_video_asset_state": {
+          "name": "asset_proposals_video_asset_state",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "asset_id",
+            "state"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.asset_variants": {
+      "name": "asset_variants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "width": {
+          "name": "width",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_width": {
+          "name": "source_width",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_height": {
+          "name": "source_height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "asset_variants_asset_id_assets_id_fk": {
+          "name": "asset_variants_asset_id_assets_id_fk",
+          "tableFrom": "asset_variants",
+          "tableTo": "assets",
+          "columnsFrom": [
+            "asset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "asset_variants_asset_state": {
+          "name": "asset_variants_asset_state",
+          "nullsNotDistinct": false,
+          "columns": [
+            "asset_id",
+            "state"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "asset_variants_state_format": {
+          "name": "asset_variants_state_format",
+          "value": "\"asset_variants\".\"state\" ~ '^[a-z0-9]+(_[a-z0-9]+)*$'"
+        },
+        "asset_variants_source_size_valid": {
+          "name": "asset_variants_source_size_valid",
+          "value": "(\"asset_variants\".\"source_width\" IS NULL AND \"asset_variants\".\"source_height\" IS NULL) OR (\"asset_variants\".\"source_width\" IS NOT NULL AND \"asset_variants\".\"source_height\" IS NOT NULL AND \"asset_variants\".\"source_width\" > 0 AND \"asset_variants\".\"source_height\" > 0)"
+        },
+        "asset_variants_size_positive": {
+          "name": "asset_variants_size_positive",
+          "value": "(\"asset_variants\".\"width\" IS NULL OR \"asset_variants\".\"width\" > 0) AND (\"asset_variants\".\"height\" IS NULL OR \"asset_variants\".\"height\" > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.assets": {
+      "name": "assets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "series_id": {
+          "name": "series_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "asset_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "generation_size": {
+          "name": "generation_size",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aliases": {
+          "name": "aliases",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "assets_series_id_series_id_fk": {
+          "name": "assets_series_id_series_id_fk",
+          "tableFrom": "assets",
+          "tableTo": "series",
+          "columnsFrom": [
+            "series_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "assets_series_name": {
+          "name": "assets_series_name",
+          "nullsNotDistinct": false,
+          "columns": [
+            "series_id",
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "assets_name_format": {
+          "name": "assets_name_format",
+          "value": "\"assets\".\"name\" ~ '^(chr|bg|prop|fx)_[a-z0-9]+(_[a-z0-9]+)*$' AND char_length(\"assets\".\"name\") <= 40"
+        },
+        "assets_name_matches_kind": {
+          "name": "assets_name_matches_kind",
+          "value": "starts_with(\"assets\".\"name\", \"assets\".\"kind\"::text || '_')"
+        },
+        "assets_generation_size_allowed": {
+          "name": "assets_generation_size_allowed",
+          "value": "\"assets\".\"generation_size\" IS NULL OR \"assets\".\"generation_size\" IN ('1024x1024', '1920x1080', '1080x1920', '1536x1024', '1024x1536')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.audio_takes": {
+      "name": "audio_takes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speaker_ref": {
+          "name": "speaker_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_metadata": {
+          "name": "model_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bytes": {
+          "name": "bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sample_rate": {
+          "name": "sample_rate",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "channels": {
+          "name": "channels",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "codec": {
+          "name": "codec",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "synthesis_started_at": {
+          "name": "synthesis_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "audio_takes_video": {
+          "name": "audio_takes_video",
+          "columns": [
+            {
+              "expression": "video_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audio_takes_video_id_videos_id_fk": {
+          "name": "audio_takes_video_id_videos_id_fk",
+          "tableFrom": "audio_takes",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "audio_takes_request_id_unique": {
+          "name": "audio_takes_request_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "request_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "audio_takes_source": {
+          "name": "audio_takes_source",
+          "value": "\"audio_takes\".\"source\" IN ('upload','tts')"
+        },
+        "audio_takes_tts_input": {
+          "name": "audio_takes_tts_input",
+          "value": "\"audio_takes\".\"source\" <> 'tts' OR (\"audio_takes\".\"text\" IS NOT NULL AND char_length(\"audio_takes\".\"text\") BETWEEN 1 AND 5000 AND \"audio_takes\".\"model_metadata\" IS NOT NULL)"
+        },
+        "audio_takes_ready": {
+          "name": "audio_takes_ready",
+          "value": "\"audio_takes\".\"status\" NOT IN ('pending_review','approved') OR (\"audio_takes\".\"file_path\" IS NOT NULL AND \"audio_takes\".\"sha256\" ~ '^[a-f0-9]{64}$' AND \"audio_takes\".\"bytes\" > 0 AND \"audio_takes\".\"bytes\" <= 26214400 AND \"audio_takes\".\"duration_seconds\" > 0 AND \"audio_takes\".\"duration_seconds\" <= 600 AND \"audio_takes\".\"sample_rate\" > 0 AND \"audio_takes\".\"channels\" > 0 AND \"audio_takes\".\"codec\" IS NOT NULL AND \"audio_takes\".\"sha256\" IS NOT NULL AND \"audio_takes\".\"bytes\" IS NOT NULL AND \"audio_takes\".\"duration_seconds\" IS NOT NULL AND \"audio_takes\".\"sample_rate\" IS NOT NULL AND \"audio_takes\".\"channels\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.channels": {
+      "name": "channels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "youtube_channel_id": {
+          "name": "youtube_channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "channels_name_unique": {
+          "name": "channels_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "channels_youtube_channel_id_unique": {
+          "name": "channels_youtube_channel_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "youtube_channel_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.combos": {
+      "name": "combos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "definition": {
+          "name": "definition",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "combos_name_unique": {
+          "name": "combos_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.generation_playbook_snapshots": {
+      "name": "generation_playbook_snapshots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "generation_run_id": {
+          "name": "generation_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "generation_playbook_snapshots_generation_run_id_algorithm_generation_runs_id_fk": {
+          "name": "generation_playbook_snapshots_generation_run_id_algorithm_generation_runs_id_fk",
+          "tableFrom": "generation_playbook_snapshots",
+          "tableTo": "algorithm_generation_runs",
+          "columnsFrom": [
+            "generation_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "generation_playbook_snapshots_lesson_id_playbook_lessons_id_fk": {
+          "name": "generation_playbook_snapshots_lesson_id_playbook_lessons_id_fk",
+          "tableFrom": "generation_playbook_snapshots",
+          "tableTo": "playbook_lessons",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "generation_playbook_snapshots_run_lesson": {
+          "name": "generation_playbook_snapshots_run_lesson",
+          "nullsNotDistinct": false,
+          "columns": [
+            "generation_run_id",
+            "lesson_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.job_runs": {
+      "name": "job_runs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "job_type": {
+          "name": "job_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "target_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "job_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metrics": {
+          "name": "metrics",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "queue_msg_id": {
+          "name": "queue_msg_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "job_runs_status": {
+          "name": "job_runs_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "job_runs_target": {
+          "name": "job_runs_target",
+          "columns": [
+            {
+              "expression": "target_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "job_runs_created_at": {
+          "name": "job_runs_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playbook_lesson_sources": {
+      "name": "playbook_lesson_sources",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision_id": {
+          "name": "revision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decision_id": {
+          "name": "decision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "playbook_lesson_sources_lesson_id_playbook_lessons_id_fk": {
+          "name": "playbook_lesson_sources_lesson_id_playbook_lessons_id_fk",
+          "tableFrom": "playbook_lesson_sources",
+          "tableTo": "playbook_lessons",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "playbook_lesson_sources_revision_id_algorithm_revisions_id_fk": {
+          "name": "playbook_lesson_sources_revision_id_algorithm_revisions_id_fk",
+          "tableFrom": "playbook_lesson_sources",
+          "tableTo": "algorithm_revisions",
+          "columnsFrom": [
+            "revision_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "playbook_lesson_sources_decision_id_algorithm_decisions_id_fk": {
+          "name": "playbook_lesson_sources_decision_id_algorithm_decisions_id_fk",
+          "tableFrom": "playbook_lesson_sources",
+          "tableTo": "algorithm_decisions",
+          "columnsFrom": [
+            "decision_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "playbook_lesson_sources_target": {
+          "name": "playbook_lesson_sources_target",
+          "value": "\"playbook_lesson_sources\".\"revision_id\" IS NOT NULL OR \"playbook_lesson_sources\".\"decision_id\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.playbook_lessons": {
+      "name": "playbook_lessons",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "lesson_key": {
+          "name": "lesson_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stage": {
+          "name": "stage",
+          "type": "algorithm_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "series_id": {
+          "name": "series_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "lesson_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'proposed'"
+        },
+        "review_reason": {
+          "name": "review_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "playbook_lessons_selection": {
+          "name": "playbook_lessons_selection",
+          "columns": [
+            {
+              "expression": "stage",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "series_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "playbook_lessons_series_id_series_id_fk": {
+          "name": "playbook_lessons_series_id_series_id_fk",
+          "tableFrom": "playbook_lessons",
+          "tableTo": "series",
+          "columnsFrom": [
+            "series_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "playbook_lessons_key_version": {
+          "name": "playbook_lessons_key_version",
+          "nullsNotDistinct": false,
+          "columns": [
+            "lesson_key",
+            "version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "playbook_lessons_version": {
+          "name": "playbook_lessons_version",
+          "value": "\"playbook_lessons\".\"version\" > 0"
+        },
+        "playbook_lessons_stage": {
+          "name": "playbook_lessons_stage",
+          "value": "\"playbook_lessons\".\"stage\" NOT IN ('problem', 'done')"
+        },
+        "playbook_lessons_review": {
+          "name": "playbook_lessons_review",
+          "value": "\"playbook_lessons\".\"status\" = 'proposed' OR \"playbook_lessons\".\"reviewed_at\" IS NOT NULL"
+        },
+        "playbook_lessons_reject_reason": {
+          "name": "playbook_lessons_reject_reason",
+          "value": "\"playbook_lessons\".\"status\" <> 'rejected' OR length(trim(\"playbook_lessons\".\"review_reason\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.projects": {
+      "name": "projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "projects_sibling_name": {
+          "name": "projects_sibling_name",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"projects\".\"parent_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "projects_root_name": {
+          "name": "projects_root_name",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"projects\".\"parent_id\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "projects_parent_id_projects_id_fk": {
+          "name": "projects_parent_id_projects_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.renders": {
+      "name": "renders",
+      "schema": "",
+      "columns": {
+        "voiceover_timeline_id": {
+          "name": "voiceover_timeline_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "voiceover_snapshot_hash": {
+          "name": "voiceover_snapshot_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "renders_voiceover_timeline_id_voiceover_timelines_id_fk": {
+          "name": "renders_voiceover_timeline_id_voiceover_timelines_id_fk",
+          "tableFrom": "renders",
+          "tableTo": "voiceover_timelines",
+          "columnsFrom": [
+            "voiceover_timeline_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "renders_video_id_videos_id_fk": {
+          "name": "renders_video_id_videos_id_fk",
+          "tableFrom": "renders",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reviews": {
+      "name": "reviews",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "target_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision": {
+          "name": "decision",
+          "type": "review_decision",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reviews_target": {
+          "name": "reviews_target",
+          "columns": [
+            {
+              "expression": "target_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scenes": {
+      "name": "scenes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "script_id": {
+          "name": "script_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dsl": {
+          "name": "dsl",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dsl_version": {
+          "name": "dsl_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "duration_frames": {
+          "name": "duration_frames",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scenes_video_id_videos_id_fk": {
+          "name": "scenes_video_id_videos_id_fk",
+          "tableFrom": "scenes",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "scenes_script_id_scripts_id_fk": {
+          "name": "scenes_script_id_scripts_id_fk",
+          "tableFrom": "scenes",
+          "tableTo": "scripts",
+          "columnsFrom": [
+            "script_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scenes_script_position": {
+          "name": "scenes_script_position",
+          "nullsNotDistinct": false,
+          "columns": [
+            "script_id",
+            "position"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scripts": {
+      "name": "scripts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scripts_video_id_videos_id_fk": {
+          "name": "scripts_video_id_videos_id_fk",
+          "tableFrom": "scripts",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scripts_video_version": {
+          "name": "scripts_video_version",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.series": {
+      "name": "series",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "series_name_unique": {
+          "name": "series_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.uploads": {
+      "name": "uploads",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "youtube_video_id": {
+          "name": "youtube_video_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "privacy_status": {
+          "name": "privacy_status",
+          "type": "privacy_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "made_for_kids": {
+          "name": "made_for_kids",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "status": {
+          "name": "status",
+          "type": "job_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "uploads_video_id_videos_id_fk": {
+          "name": "uploads_video_id_videos_id_fk",
+          "tableFrom": "uploads",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "uploads_channel_id_channels_id_fk": {
+          "name": "uploads_channel_id_channels_id_fk",
+          "tableFrom": "uploads",
+          "tableTo": "channels",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.validations": {
+      "name": "validations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "target_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "validator_model": {
+          "name": "validator_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scores": {
+          "name": "scores",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verdict": {
+          "name": "verdict",
+          "type": "validation_verdict",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "feedback": {
+          "name": "feedback",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "validations_target": {
+          "name": "validations_target",
+          "columns": [
+            {
+              "expression": "target_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.videos": {
+      "name": "videos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "series_id": {
+          "name": "series_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "combo_id": {
+          "name": "combo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "video_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cartoon'"
+        },
+        "status": {
+          "name": "status",
+          "type": "video_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'scripting'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "videos_series_id_series_id_fk": {
+          "name": "videos_series_id_series_id_fk",
+          "tableFrom": "videos",
+          "tableTo": "series",
+          "columnsFrom": [
+            "series_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "videos_project_id_projects_id_fk": {
+          "name": "videos_project_id_projects_id_fk",
+          "tableFrom": "videos",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "videos_channel_id_channels_id_fk": {
+          "name": "videos_channel_id_channels_id_fk",
+          "tableFrom": "videos",
+          "tableTo": "channels",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "videos_combo_id_combos_id_fk": {
+          "name": "videos_combo_id_combos_id_fk",
+          "tableFrom": "videos",
+          "tableTo": "combos",
+          "columnsFrom": [
+            "combo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "videos_id_kind": {
+          "name": "videos_id_kind",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "kind"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "videos_kind_status": {
+          "name": "videos_kind_status",
+          "value": "(\"videos\".\"kind\" = 'cartoon' AND \"videos\".\"status\" IS NOT NULL) OR (\"videos\".\"kind\" = 'algorithm' AND \"videos\".\"status\" IS NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.voiceover_timelines": {
+      "name": "voiceover_timelines",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "video_id": {
+          "name": "video_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "visual_fingerprint": {
+          "name": "visual_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "voiceover_timelines_video_id_videos_id_fk": {
+          "name": "voiceover_timelines_video_id_videos_id_fk",
+          "tableFrom": "voiceover_timelines",
+          "tableTo": "videos",
+          "columnsFrom": [
+            "video_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "voiceover_timelines_video_version": {
+          "name": "voiceover_timelines_video_version",
+          "nullsNotDistinct": false,
+          "columns": [
+            "video_id",
+            "version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "voiceover_timelines_version": {
+          "name": "voiceover_timelines_version",
+          "value": "\"voiceover_timelines\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.algorithm_asset_status": {
+      "name": "algorithm_asset_status",
+      "schema": "public",
+      "values": [
+        "open",
+        "generating",
+        "pending_review",
+        "bound",
+        "dropped",
+        "failed"
+      ]
+    },
+    "public.algorithm_run_status": {
+      "name": "algorithm_run_status",
+      "schema": "public",
+      "values": [
+        "queued",
+        "running",
+        "waiting_review",
+        "succeeded",
+        "failed",
+        "stale"
+      ]
+    },
+    "public.algorithm_source": {
+      "name": "algorithm_source",
+      "schema": "public",
+      "values": [
+        "human",
+        "llm"
+      ]
+    },
+    "public.algorithm_stage": {
+      "name": "algorithm_stage",
+      "schema": "public",
+      "values": [
+        "problem",
+        "solution",
+        "combo",
+        "script",
+        "assets",
+        "voice",
+        "animation",
+        "render",
+        "done"
+      ]
+    },
+    "public.asset_kind": {
+      "name": "asset_kind",
+      "schema": "public",
+      "values": [
+        "chr",
+        "bg",
+        "prop",
+        "fx"
+      ]
+    },
+    "public.job_status": {
+      "name": "job_status",
+      "schema": "public",
+      "values": [
+        "queued",
+        "running",
+        "succeeded",
+        "failed"
+      ]
+    },
+    "public.lesson_status": {
+      "name": "lesson_status",
+      "schema": "public",
+      "values": [
+        "proposed",
+        "approved",
+        "rejected",
+        "retired"
+      ]
+    },
+    "public.privacy_status": {
+      "name": "privacy_status",
+      "schema": "public",
+      "values": [
+        "private",
+        "unlisted",
+        "public"
+      ]
+    },
+    "public.proposal_decision": {
+      "name": "proposal_decision",
+      "schema": "public",
+      "values": [
+        "open",
+        "approved",
+        "dropped"
+      ]
+    },
+    "public.proposal_kind": {
+      "name": "proposal_kind",
+      "schema": "public",
+      "values": [
+        "asset",
+        "variant"
+      ]
+    },
+    "public.review_decision": {
+      "name": "review_decision",
+      "schema": "public",
+      "values": [
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.review_status": {
+      "name": "review_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "generating",
+        "pending_review",
+        "approved",
+        "rejected",
+        "failed",
+        "stale"
+      ]
+    },
+    "public.target_type": {
+      "name": "target_type",
+      "schema": "public",
+      "values": [
+        "audio_take",
+        "voiceover_timeline",
+        "asset",
+        "asset_variant",
+        "video",
+        "script",
+        "scene",
+        "render",
+        "upload",
+        "algorithm_workflow",
+        "algorithm_revision",
+        "algorithm_output",
+        "algorithm_generation_run",
+        "playbook_lesson",
+        "algorithm_workflow"
+      ]
+    },
+    "public.validation_verdict": {
+      "name": "validation_verdict",
+      "schema": "public",
+      "values": [
+        "pass",
+        "fail"
+      ]
+    },
+    "public.video_kind": {
+      "name": "video_kind",
+      "schema": "public",
+      "values": [
+        "cartoon",
+        "algorithm"
+      ]
+    },
+    "public.video_status": {
+      "name": "video_status",
+      "schema": "public",
+      "values": [
+        "casting",
+        "scripting",
+        "storyboarding",
+        "rendering",
+        "uploading",
+        "done"
+      ]
+    },
+    "public.algorithm_voice_clip_status": {
+      "name": "algorithm_voice_clip_status",
+      "schema": "public",
+      "values": [
+        "generating",
+        "ready",
+        "failed"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

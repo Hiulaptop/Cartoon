@@ -1,4 +1,4 @@
-import { copyFile, mkdir, rename, rm } from "node:fs/promises";
+import { copyFile, mkdir, rename, rm, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { bundle } from "@remotion/bundler";
@@ -12,7 +12,10 @@ import type { JobPayload } from "@/lib/queue/jobs";
 import { loadApprovedCatalog } from "@/lib/scene/catalog";
 import { checkSceneDsl } from "@/lib/scene/check";
 import { parseSceneDsl, FPS, type ResolvedAssets } from "@/lib/scene/schema";
-import { dataPath } from "@/lib/storage";
+import { dataPath, writeDataFile } from "@/lib/storage";
+import { readRenderRequest, snapshotRenderAudio } from "@/lib/audio/render-snapshot";
+import { objectHash, sha256, visualFingerprint } from "@/lib/audio/fingerprint";
+import type { RenderRequestV1, VisualSnapshot } from "@/lib/audio/types";
 import type { VideoProps } from "@/remotion/VideoComposition";
 
 import { PermanentJobError, type JobContext } from "./job-types";
@@ -32,7 +35,22 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
   if (!video || video.kind !== "cartoon") throw new PermanentJobError("Không có video hoạt hình của bản render này");
 
   const stage = dataPath(`tmp/render-${renderId}`);
+  const completed = ["pending_review", "approved", "rejected"].includes(render.status) && !!render.filePath;
   try {
+    let request: RenderRequestV1 | undefined;
+    if (Object.hasOwn(payload, "requestVersion") || Object.hasOwn(payload, "requestHash")) {
+      if (payload.requestVersion !== 1 || typeof payload.requestHash !== "string") throw new PermanentJobError("Render request version/hash không hợp lệ");
+      try { request = await readRenderRequest(renderId, payload.requestHash, render.videoId, false); }
+      catch { throw new PermanentJobError("Input render đã đổi hoặc không hợp lệ; kiểm tra timeline và tạo render mới"); }
+      if (render.voiceoverSnapshotHash !== payload.requestHash || render.voiceoverTimelineId !== (request.audio.mode === "voiceover" ? request.audio.timelineVersionId : null)) throw new PermanentJobError("Render record không khớp request");
+      if (completed && render.filePath) {
+        const manifest = JSON.parse(await readFile(dataPath(`renders/${renderId}/manifest.json`), "utf8"));
+        if (manifest.requestHash === payload.requestHash && objectHash(manifest.request) === payload.requestHash && sha256(await readFile(dataPath(render.filePath))) === manifest.outputHash) return { reused: true, renderId };
+        throw new PermanentJobError("Output render trước đây không khớp manifest");
+      }
+      try { await readRenderRequest(renderId, payload.requestHash, render.videoId); }
+      catch { throw new PermanentJobError("Input render đã đổi hoặc không hợp lệ; kiểm tra timeline và tạo render mới"); }
+    } else if (render.voiceoverSnapshotHash || render.voiceoverTimelineId) throw new PermanentJobError("Thiếu payload request của bản render mới");
     await db.update(renders).set({ status: "generating", error: null }).where(eq(renders.id, renderId));
 
     // 1. Cảnh đã duyệt của kịch bản duyệt mới nhất, đủ và đúng thứ tự.
@@ -61,13 +79,20 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
       for (const a of Object.values(checked.assets as ResolvedAssets)) used.add(a.path);
     }
 
+    if (request) {
+      const actual: VisualSnapshot = { scriptId: script.id, scriptVersion: script.version, scriptHash: objectHash(script.content), fps: 30, width: 1920, height: 1080, scenes: rows.map((row, i) => ({ id: row.id, position: row.position, dslHash: objectHash(sceneProps[i].dsl), durationFrames: sceneProps[i].dsl.durationFrames })) };
+      if (visualFingerprint(actual) !== request.visualHash || objectHash([...used].sort()) !== objectHash(request.imageFiles.map((i) => i.path).sort())) throw new PermanentJobError("Cảnh/asset đã đổi trước snapshot");
+    }
+
     // 3. Thư mục public tạm chỉ chứa ảnh được dùng; staticFile(path) khớp đường dẫn tính từ DATA_DIR.
     const publicDir = path.join(stage, "public");
     for (const rel of used) {
       const target = path.join(publicDir, rel);
       await mkdir(path.dirname(target), { recursive: true });
       await copyFile(dataPath(rel), target);
+      if (request && sha256(await readFile(target)) !== request.imageFiles.find((i) => i.path === rel)?.sha256) throw new PermanentJobError("Ảnh snapshot hash không khớp request");
     }
+    const voiceover = request ? await snapshotRenderAudio(request, publicDir) : undefined;
 
     // 4. Bundle + render.
     await ensureBrowser();
@@ -80,7 +105,7 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
         resolve: { ...config.resolve, alias: { ...(config.resolve?.alias ?? {}), "@": path.resolve("src") } },
       }),
     });
-    const inputProps: VideoProps = { scenes: sceneProps, assetMode: "static" };
+    const inputProps: VideoProps = { scenes: sceneProps, assetMode: "static", ...(voiceover ? { voiceover } : {}) };
     const composition = await selectComposition({ serveUrl, id: "Video", inputProps });
 
     const out = path.join(stage, "out.mp4");
@@ -90,6 +115,7 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
       composition,
       serveUrl,
       codec: "h264",
+      ...(voiceover ? { audioCodec: "aac" as const } : {}),
       outputLocation: out,
       inputProps,
       chromiumOptions: { enableMultiProcessOnLinux: true },
@@ -113,10 +139,23 @@ export async function renderVideo(payload: JobPayload, ctx: JobContext) {
     await mkdir(path.dirname(dataPath(finalRel)), { recursive: true });
     await rename(out, dataPath(finalRel));
     const durationMs = Math.round((composition.durationInFrames / FPS) * 1000);
+    const sourceHashes: Record<string, string> = {};
+    async function recordSources(dir: string) {
+      for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const file = path.join(dir, entry.name);
+        if (entry.isDirectory()) await recordSources(file);
+        else if (/\.(ts|tsx)$/.test(entry.name)) sourceHashes[file.replaceAll(path.sep, "/")] = sha256(await readFile(file));
+      }
+    }
+    await recordSources("src/remotion");
+    for (const file of ["src/lib/audio/timing.ts", "src/lib/audio/types.ts", "src/lib/scene/schema.ts"]) sourceHashes[file] = sha256(await readFile(file));
+    const packages = JSON.parse(await readFile("package.json", "utf8"));
+    await writeDataFile(`renders/${renderId}/manifest.json`, JSON.stringify({ version: 1, renderId, request: request ?? null, requestHash: request ? payload.requestHash : null, mode: request?.audio.mode ?? "legacy-silent", sourceHashes, lockHash: sha256(await readFile("package-lock.json")), packages: packages.dependencies, imageSnapshots: request?.imageFiles ?? [...used].sort(), audioSnapshots: request?.audio.mode === "voiceover" ? request.audio.takeHashes : {}, frames: composition.durationInFrames, fps: FPS, durationMs, outputHash: sha256(await readFile(dataPath(finalRel))) }, null, 2));
     await db.update(renders).set({ filePath: finalRel, durationMs, status: "pending_review" }).where(eq(renders.id, renderId));
     return { scenes: rows.length, frames: composition.durationInFrames, durationMs };
   } catch (error) {
-    await db.update(renders).set({ status: "failed", error: errorMessage(error) }).where(eq(renders.id, renderId));
+    // A redelivered queue message must never downgrade a completed, reviewed artifact.
+    if (!completed) await db.update(renders).set({ status: "failed", error: errorMessage(error) }).where(eq(renders.id, renderId));
     throw error;
   } finally {
     await rm(stage, { recursive: true, force: true });

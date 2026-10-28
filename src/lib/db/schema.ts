@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { ASSET_GENERATION_SIZES } from "../assets/generation-size";
 import {
   type AnyPgColumn,
   type PgTableExtraConfigValue,
@@ -6,6 +7,7 @@ import {
   boolean,
   check,
   foreignKey,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -48,6 +50,8 @@ export const videoStatus = pgEnum("video_status", [
 ]);
 // Loại đối tượng mà validations, reviews, job_runs trỏ tới (tham chiếu đa hình, không có khóa ngoại).
 export const targetType = pgEnum("target_type", [
+  "audio_take",
+  "voiceover_timeline",
   "asset",
   "asset_variant",
   "video",
@@ -116,6 +120,7 @@ export const assets = pgTable(
     kind: assetKind("kind").notNull(),
     displayName: text("display_name").notNull(),
     description: text("description").notNull().default(""),
+    generationSize: text("generation_size"),
     aliases: text("aliases").array().notNull().default(sql`'{}'::text[]`),
     status: reviewStatus("status").notNull().default("draft"),
     createdAt: createdAt(),
@@ -130,6 +135,7 @@ export const assets = pgTable(
       sql`${t.name} ~ '^(chr|bg|prop|fx)_[a-z0-9]+(_[a-z0-9]+)*$' AND char_length(${t.name}) <= 40`,
     ),
     check("assets_name_matches_kind", sql`starts_with(${t.name}, ${t.kind}::text || '_')`),
+    check("assets_generation_size_allowed", sql`${t.generationSize} IS NULL OR ${t.generationSize} IN (${sql.raw(ASSET_GENERATION_SIZES.map((entry) => `'${entry.value}'`).join(", "))})`),
   ],
 );
 
@@ -145,6 +151,8 @@ export const assetVariants = pgTable(
     filePath: text("file_path"),
     width: integer("width"),
     height: integer("height"),
+    sourceWidth: integer("source_width"),
+    sourceHeight: integer("source_height"),
     prompt: text("prompt").notNull().default(""),
     status: reviewStatus("status").notNull().default("draft"),
     createdAt: createdAt(),
@@ -153,6 +161,7 @@ export const assetVariants = pgTable(
   (t) => [
     unique("asset_variants_asset_state").on(t.assetId, t.state),
     check("asset_variants_state_format", sql`${t.state} ~ '^[a-z0-9]+(_[a-z0-9]+)*$'`),
+    check("asset_variants_source_size_valid", sql`(${t.sourceWidth} IS NULL AND ${t.sourceHeight} IS NULL) OR (${t.sourceWidth} IS NOT NULL AND ${t.sourceHeight} IS NOT NULL AND ${t.sourceWidth} > 0 AND ${t.sourceHeight} > 0)`),
     check(
       "asset_variants_size_positive",
       sql`(${t.width} IS NULL OR ${t.width} > 0) AND (${t.height} IS NULL OR ${t.height} > 0)`,
@@ -261,7 +270,29 @@ export const reviews = pgTable(
   (t) => [index("reviews_target").on(t.targetType, t.targetId)],
 );
 
+export const audioTakes = pgTable("audio_takes", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => videos.id, { onDelete: "restrict" }),
+  source: text("source").notNull(), status: reviewStatus("status").notNull().default("draft"),
+  label: text("label").notNull(), speakerRef: text("speaker_ref"), text: text("text"), modelMetadata: jsonb("model_metadata").$type<{ modelId: string; label: string }>(),
+  filePath: text("file_path"), sha256: text("sha256"), bytes: bigint("bytes", { mode: "number" }), durationSeconds: doublePrecision("duration_seconds"),
+  sampleRate: integer("sample_rate"), channels: integer("channels"), codec: text("codec"), requestId: uuid("request_id").notNull().unique(),
+  synthesisStartedAt: timestamp("synthesis_started_at", { withTimezone: true }), createdAt: createdAt(), updatedAt: updatedAt(),
+}, (t) => [
+  index("audio_takes_video").on(t.videoId),
+  check("audio_takes_source", sql`${t.source} IN ('upload','tts')`),
+  check("audio_takes_tts_input", sql`${t.source} <> 'tts' OR (${t.text} IS NOT NULL AND char_length(${t.text}) BETWEEN 1 AND 5000 AND ${t.modelMetadata} IS NOT NULL)`),
+  check("audio_takes_ready", sql`${t.status} NOT IN ('pending_review','approved') OR (${t.filePath} IS NOT NULL AND ${t.sha256} ~ '^[a-f0-9]{64}$' AND ${t.bytes} > 0 AND ${t.bytes} <= 26214400 AND ${t.durationSeconds} > 0 AND ${t.durationSeconds} <= 600 AND ${t.sampleRate} > 0 AND ${t.channels} > 0 AND ${t.codec} IS NOT NULL AND ${t.sha256} IS NOT NULL AND ${t.bytes} IS NOT NULL AND ${t.durationSeconds} IS NOT NULL AND ${t.sampleRate} IS NOT NULL AND ${t.channels} IS NOT NULL)`),
+]);
+
+export const voiceoverTimelines = pgTable("voiceover_timelines", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => videos.id, { onDelete: "restrict" }), version: integer("version").notNull(),
+  content: jsonb("content").$type<import("../audio/types").VoiceoverTimelineV1>().notNull(), status: reviewStatus("status").notNull().default("draft"),
+  visualFingerprint: text("visual_fingerprint").notNull(), contentHash: text("content_hash").notNull(), createdAt: createdAt(), updatedAt: updatedAt(),
+}, (t) => [unique("voiceover_timelines_video_version").on(t.videoId, t.version), check("voiceover_timelines_version", sql`${t.version} > 0`)]);
+
 export const renders = pgTable("renders", {
+  voiceoverTimelineId: uuid("voiceover_timeline_id").references(() => voiceoverTimelines.id, { onDelete: "restrict" }),
+  voiceoverSnapshotHash: text("voiceover_snapshot_hash"),
   id: id(),
   videoId: uuid("video_id")
     .notNull()

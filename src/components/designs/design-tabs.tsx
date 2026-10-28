@@ -10,6 +10,7 @@ const TABS = [
   { suffix: "/casting", label: "Casting" },
   { suffix: "", label: "Kịch bản" },
   { suffix: "/storyboard", label: "Phân cảnh và cảnh" },
+  { suffix: "/voiceover", label: "Lồng tiếng" },
   { suffix: "/render", label: "Ghép video" },
   { suffix: "/upload", label: "Upload" },
 ];
