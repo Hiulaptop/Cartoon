@@ -47,11 +47,10 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-RUN addgroup --system --gid 1001 nodejs \
- && adduser --system --uid 1001 nextjs
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-USER nextjs
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+# App and worker share DATA_DIR; use the same node UID/GID for render snapshots.
+USER node
 EXPOSE 3000
 CMD ["node", "server.js"]
