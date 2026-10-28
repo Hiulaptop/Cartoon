@@ -1,0 +1,115 @@
+# ============================================================================
+# NEGATIVE PROMPT GUARDRAILS & DYNAMIC CONFLICT RESOLUTION
+# Rule: Total compiled negative prompt MUST stay within 12 to 15 terms.
+# ============================================================================
+
+compilation_rules:
+  max_total_terms: 15
+  min_total_terms: 12
+  separator: ", "
+  
+  # Dynamic conflict resolution: If the positive prompt / user intent contains
+  # any trigger word below, automatically strip the conflicting negative terms.
+  conflict_overrides:
+    fast_motion_triggers: ["run", "sprint", "dash", "fast", "leap", "jump", "swing", "whip pan", "strike"]
+    strip_on_fast_motion: ["motion blur"]
+    
+    camera_movement_triggers: ["dolly", "pan", "tilt", "track", "crane", "orbit", "push in", "pull back"]
+    strip_on_camera_movement: ["camera shake"]
+
+# ============================================================================
+# CORE PROTECTION BUCKETS (Allocated by Priority Budget)
+# ============================================================================
+buckets:
+  # Bucket 1: Identity & Temporal Continuity Guard (Always include 5 terms)
+  identity_and_temporal:
+    priority: 1
+    budget_allocation: 5
+    terms:
+      - "character morphing"
+      - "identity drift"
+      - "facial distortion"
+      - "inconsistent eyes"
+      - "flicker"
+      - "frame jump"
+      - "temporal jitter"
+
+  # Bucket 2: Medium & Style Drift Guard (Select 4 terms based on aesthetic_medium)
+  style_drift_by_medium:
+    priority: 2
+    budget_allocation: 4
+    2d_cel_shaded:
+      - "photorealistic"
+      - "3D CGI render"
+      - "realistic skin or feather texture"
+      - "volumetric 3D shading"
+      - "color shift"
+      - "inconsistent linework"
+    2d_painterly:
+      - "photorealistic"
+      - "3D CGI render"
+      - "harsh digital vector lines"
+      - "neon oversaturation"
+      - "style shift"
+    3d_stylized:
+      - "flat 2D drawing"
+      - "uncanny valley photorealism"
+      - "plastic overexposed skin"
+      - "mesh tearing"
+      - "texture swimming"
+
+  # Bucket 3: Anatomical & Wardrobe Guard (Select 3 terms based on limb_type)
+  anatomy_by_limb_type:
+    priority: 3
+    budget_allocation: 3
+    humanoid_5_fingers:
+      - "distorted hands"
+      - "extra fingers"
+      - "fused fingers"
+      - "asymmetric eyes"
+      - "inconsistent wardrobe"
+    cartoon_4_fingers:
+      - "realistic 5-finger hands"
+      - "extra digits"
+      - "deformed limbs"
+      - "inconsistent wardrobe"
+    avian_flippers_webbed_feet:
+      - "human hands"
+      - "human fingers"
+      - "deformed beak"
+      - "extra wings or limbs"
+      - "inconsistent wardrobe"
+    quadruped_paws:
+      - "human hands"
+      - "extra legs"
+      - "deformed muzzle"
+      - "floating limbs"
+
+  # Bucket 4: I2V Motion & Artifact Enforcement (Always include 3 terms)
+  i2v_motion_and_artifacts:
+    priority: 4
+    budget_allocation: 3
+    terms:
+      - "static frozen frame"
+      - "Ken Burns zoom"
+      - "abrupt cut"
+      - "watermark"
+      - "text overlay"
+
+# ============================================================================
+# PRE-COMPILED PRESETS (Ready-to-use 15-term strings for instant injection)
+# ============================================================================
+presets:
+  # Optimized for 2D Cel-Shaded Humanoid Characters (15 terms)
+  2d_cel_humanoid_default: >-
+    character morphing, identity drift, facial distortion, inconsistent eyes, flicker,
+    photorealistic, 3D CGI render, realistic skin texture, volumetric 3D shading,
+    distorted hands, extra fingers, inconsistent wardrobe,
+    static frozen frame, Ken Burns zoom, watermark
+
+  # Optimized for 2D Cel-Shaded Avian / Mascot / Penguin Characters (15 terms)
+  2d_cel_avian_default: >-
+    character morphing, identity drift, facial distortion, inconsistent eyes, flicker,
+    photorealistic, 3D CGI render, realistic feather texture, volumetric 3D shading,
+    human hands, human fingers, deformed beak, inconsistent wardrobe,
+    static frozen frame, Ken Burns zoom

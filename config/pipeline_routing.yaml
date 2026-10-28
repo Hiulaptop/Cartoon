@@ -1,0 +1,103 @@
+# ============================================================================
+# ANIMATION CONTINUITY PIPELINE - CENTRAL ROUTING & GUARDRAIL CONFIGURATION
+# ============================================================================
+
+project:
+  name: "anim-continuity-pipeline"
+  version: "1.0.0"
+  default_aesthetic: "2d_cel_shaded" # Options: "2d_cel_shaded" | "2d_painterly" | "3d_stylized"
+  default_aspect_ratio: "16:9"       # Options: "16:9" | "9:16" | "1:1" | "4:3"
+
+# Global routing mode:
+# - "auto": Automatically selects Mode A or Mode B based on target_engine
+# - "mode_a_first_frame": Force Pure First-Frame Anchor I2V (50-80 words)
+# - "mode_b_r2v": Force Reference-to-Video / Multi-Shot Extender (80-100 words)
+pipeline_mode: "auto"
+
+# Engine-to-Mode Mapping Table (Used when pipeline_mode == "auto")
+engine_mode_map:
+  kling_2.6_i2v: "mode_a_first_frame"
+  kling_4.0_i2v: "mode_a_first_frame"
+  runway_gen3_i2v: "mode_a_first_frame"
+  runway_gen4_i2v: "mode_a_first_frame"
+  ltx_2_i2v: "mode_a_first_frame"
+  hunyuan_i2v: "mode_a_first_frame"
+  wan2.1_i2v_anchor: "mode_a_first_frame"
+  wan2.2_i2v_anchor: "mode_a_first_frame"
+  wan2.1_r2v_extender: "mode_b_r2v"
+  wan2.2_vace: "mode_b_r2v"
+  phantom_wan_14b: "mode_b_r2v"
+  skyreels_a2: "mode_b_r2v"
+  vidu_my_reference: "mode_b_r2v"
+
+# ============================================================================
+# MODULE INTEGRATION SWITCHES (Read by Coding Agents & Runtime Loader)
+# Status options:
+#   - "skip": Bypass module completely; use existing host system outputs
+#   - "integrate": Wrap existing host services using Adapter/Hook pattern
+#   - "standalone": Execute this repo's native implementation
+# ============================================================================
+modules:
+  mod_01_asset_ingest:
+    status: "integrate"
+    existing_schema_path: "./data/characters.json"
+    canon_schema_file: "./config/character_canon.schema.json"
+    preprocessing:
+      enforce_aspect_crop: true
+      auto_crop_framing_match: true     # Crop full-body sheet to upper-body if shot == "medium_closeup"
+      generate_clean_bg_for_r2v: true   # Strip background to solid white/alpha for IPAdapter/Phantom
+      min_resolution_short_edge: 720
+
+  mod_02_vlm_compiler:
+    status: "standalone"
+    prompts:
+      mode_a_xml: "./prompts/mode_a_first_frame.xml"
+      mode_b_xml: "./prompts/mode_b_r2v_extender.xml"
+      negative_guards_file: "./prompts/negative_guards.yaml"
+    vlm_client:
+      provider: "qwen-vl"               # Options: "qwen-vl" | "anthropic" | "openai" | "ollama_local"
+      model_name: "Qwen2.5-VL-7B-Instruct"
+      temperature: 0.01                 # Ultra-low temperature (CogVideoX standard) to prevent hallucination
+      top_p: 0.70
+      max_tokens: 450
+    validation_guardrails:
+      strip_meta_preambles: true
+      enforce_verbatim_identity_block: true
+      max_style_tags: 4
+      mode_a_word_bounds: [50, 80]
+      mode_b_word_bounds: [80, 100]
+      negative_term_bounds: [12, 16]
+
+  mod_03_engine_adapter:
+    status: "integrate"
+    target_engine: "wan2.2_vace"
+    comfyui_connection:
+      host: "127.0.0.1"
+      port: 8188
+      workflow_template_dir: "./workflows/"
+    safe_inference_bounds:
+      # Spatio-temporal & CFG constraints
+      fps: 16
+      frames_per_shot: 81               # ~5.0 seconds at 16 FPS (optimal anti-drift window)
+      cfg_scale_default: 6.0            # Safe range [5.0 - 7.0] for Wan/CogVideo
+      cfg_scale_ltx: 3.0                # Safe range [3.0 - 3.5] for LTX-Video
+      use_nag_guidance: true            # Normalized Attention Guidance when supported
+      # Identity & Adapter weights
+      ipadapter_faceid_weight: 0.75     # Strictly locked within [0.70 - 0.80]
+      controlnet_total_max_weight: 0.90 # OpenPose + Depth combined < 1.0
+      controlnet_depth_weight: 0.35
+      facedetailer_denoise: 0.40        # Refines eyes/mouth without overwriting character design
+      # Architecture-specific node flags
+      ltx2_ref_latent_mode: "parallel-single" # Prevents image latent from overriding prompt semantics
+      vace_phantom_accelerator: "causvid"     # Force "causvid"; ban "lightx_lora" to protect identity
+
+  mod_04_continuity_qa:
+    status: "standalone"
+    shot_chaining:
+      auto_extract_last_frame: true
+      output_format: "png"
+      chain_mode_for_next_shot: "mode_a_first_frame"
+    regression_thresholds:
+      min_clip_cosine_similarity: 0.88  # Minimum identity similarity between frame[0] and frame[-1]
+      max_palette_histogram_drift: 0.12 # Maximum color temperature shift before triggering re-render
+      auto_downgrade_motion_on_fail: true # Downgrade "Moderate" -> "Subtle" if facial drift detected

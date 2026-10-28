@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anim-continuity-pipeline.local/schemas/character_canon.schema.json",
+  "title": "CharacterContinuityCanon",
+  "description": "Strict schema locking visual identity, 2D/3D style tags, wardrobe states, and signature props across Dual-Mode I2V and R2V animation pipelines.",
+  "type": "object",
+  "required": [
+    "character_id",
+    "character_name",
+    "aesthetic_medium",
+    "focal_anchor",
+    "locked_identity_block",
+    "style_lock_tags",
+    "consistency_anchor",
+    "wardrobe_presets",
+    "asset_pack"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "character_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique snake_case identifier for the character (e.g., 'pip_stone_age_penguin')."
+    },
+    "character_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "aesthetic_medium": {
+      "type": "string",
+      "enum": [
+        "2d_cel_shaded",
+        "2d_painterly",
+        "2d_vector_cutout",
+        "3d_stylized"
+      ],
+      "description": "Primary animation medium used to route anti-style-drift negative guards."
+    },
+    "focal_anchor": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 75,
+      "description": "Concise subject reference (3-10 words) used in Mode A (First-Frame I2V) to isolate the subject without conflicting with the first-frame embedding (e.g., 'The small plump Stone Age penguin in the fur tunic')."
+    },
+    "locked_identity_block": {
+      "type": "string",
+      "minLength": 90,
+      "maxLength": 220,
+      "description": "Immutable 20-25 word physical & wardrobe description pasted VERBATIM at index 0 of every Mode B (R2V) prompt. Synonym swapping is strictly forbidden."
+    },
+    "style_lock_tags": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 65
+      },
+      "description": "Strictly capped at 4 tags so style tokens do not starve the motion attention budget (e.g., ['2D flat cel-shaded cartoon style', 'clean bold dark outlines', 'warm earthy prehistoric palette', 'European-North American TV animation look'])."
+    },
+    "consistency_anchor": {
+      "type": "string",
+      "default": "consistent 2D animation style throughout, no style shift, uniform color palette, continuous seamless shot",
+      "description": "Mandatory closing tag appended to the end of every positive prompt."
+    },
+    "anatomical_constraints": {
+      "type": "object",
+      "required": ["head_to_body_ratio", "limb_type", "facial_markers"],
+      "properties": {
+        "head_to_body_ratio": {
+          "type": "string",
+          "description": "Locked proportion ratio (e.g., '1:2 chibi proportion', 'compact rounded avian torso')."
+        },
+        "limb_type": {
+          "type": "string",
+          "enum": ["humanoid_5_fingers", "cartoon_4_fingers", "avian_flippers_webbed_feet", "quadruped_paws"]
+        },
+        "facial_markers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Immutable facial features (e.g., ['large expressive round eyes', 'short triangular orange beak', 'white cheek patches'])."
+        }
+      }
+    },
+    "wardrobe_presets": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["wardrobe_tag", "verbatim_descriptor"],
+        "properties": {
+          "wardrobe_tag": { "type": "string" },
+          "verbatim_descriptor": {
+            "type": "string",
+            "description": "Exact phrasing for the outfit (e.g., 'wearing a ragged mammoth-fur sash slung over one shoulder with a bone clasp')."
+          }
+        }
+      }
+    },
+    "signature_props": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["prop_id", "verbatim_descriptor", "attachment_point"],
+        "properties": {
+          "prop_id": { "type": "string" },
+          "verbatim_descriptor": {
+            "type": "string",
+            "description": "Exact phrasing for the prop (e.g., 'holding a wooden-shafted chipped flint hand-axe tied with leather cord')."
+          },
+          "attachment_point": {
+            "type": "string",
+            "enum": ["right_hand_flipper", "left_hand_flipper", "both_hands", "back_strap", "headgear"]
+          }
+        }
+      }
+    },
+    "asset_pack": {
+      "type": "object",
+      "required": ["master_front_sheet", "clean_bg_reference"],
+      "properties": {
+        "master_front_sheet": { "type": "string", "description": "Path to primary high-res character asset." },
+        "clean_bg_reference": { "type": "string", "description": "Path to background-removed asset for IP-Adapter/Phantom/VACE." },
+        "three_quarter_view": { "type": "string" },
+        "side_profile_view": { "type": "string" },
+        "cropped_medium_closeup": { "type": "string", "description": "Pre-cropped upper-body asset for portrait/dialogue shots." },
+        "character_lora_path": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
