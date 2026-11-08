@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "requestId": "english-voice-pilot-v1",
+  "language": "English",
+  "speaker": "Ryan",
+  "fps": 30,
+  "cues": [
+    {
+      "id": "hook",
+      "text": "What if the hardest part of a new habit is not the work itself, but the size of the first step? Start with something small enough to begin today.",
+      "preset": "engaging-hook",
+      "seed": 731100
+    },
+    {
+      "id": "explanation",
+      "text": "Sunlight contains many colors. As it passes through the atmosphere, air molecules scatter shorter wavelengths more strongly than longer ones. That scattered light is one reason the daytime sky looks blue.",
+      "preset": "clear-explainer",
+      "seed": 731101
+    },
+    {
+      "id": "story",
+      "text": "Each morning, a gardener pauses beside a little patch of green. There is no dramatic transformation to announce, just a quiet moment of care before the rest of the day begins.",
+      "preset": "warm-story",
+      "seed": 731102
+    }
+  ]
+}

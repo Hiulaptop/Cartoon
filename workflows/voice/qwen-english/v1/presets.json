@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "presets": {
+    "clear-explainer": "Speak in clear, natural English with a calm, confident explanatory tone. Use a moderate pace and brief pauses between ideas. Emphasize key words without sounding theatrical.",
+    "warm-story": "Speak in warm, conversational English with a gentle storytelling tone. Use a relaxed pace and natural pauses. Keep the delivery sincere and avoid exaggerated character acting.",
+    "engaging-hook": "Speak in energetic but natural English with curiosity and a confident opening. Use crisp phrasing and purposeful emphasis. Do not shout or rush the words."
+  }
+}
