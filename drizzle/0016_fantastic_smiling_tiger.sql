@@ -1,0 +1,1 @@
+ALTER TABLE "automation_revisions" ADD CONSTRAINT "automation_revisions_parent_id_automation_revisions_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."automation_revisions"("id") ON DELETE no action ON UPDATE no action;

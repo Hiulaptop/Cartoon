@@ -22,6 +22,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   let full: string;
   try {
     full = dataPath(relative);
+    const normalized = path.relative(dataPath("."), full).split(path.sep)[0].toLowerCase().replace(/[. ]+$/g, "");
+    if (normalized === "automation") return new Response("Not found", { status: 404 });
   } catch {
     return new Response("Not found", { status: 404 });
   }

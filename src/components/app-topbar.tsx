@@ -3,6 +3,7 @@
 import { MenuIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { SidebarNav } from "@/components/app-sidebar";
 import { ModeSwitch } from "@/components/mode-switch";
@@ -14,6 +15,7 @@ import type { Mode } from "@/lib/mode";
 export function AppTopbar({ mode }: { mode: Mode }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const automation = usePathname().startsWith("/automation");
   return (
     <div className="mb-4 flex items-center justify-between gap-1">
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -30,7 +32,7 @@ export function AppTopbar({ mode }: { mode: Mode }) {
           <SidebarNav mode={mode} onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
       </Sheet>
-      <ModeSwitch mode={mode} />
+      {automation ? <span className="text-sm font-medium">Automation · độc lập với chế độ video</span> : <ModeSwitch mode={mode} />}
       <div className="ml-auto flex gap-1">
         <NotificationBell />
         <Button variant="ghost" size="icon" aria-label="Đổi giao diện sáng hoặc tối" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>

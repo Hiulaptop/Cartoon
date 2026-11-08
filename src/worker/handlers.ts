@@ -16,11 +16,22 @@ import { generateAlgorithmAssetBase } from "./algorithm-asset-jobs";
 import { generateAlgorithmVoice } from "./algorithm-voice-jobs";
 import { generateAlgorithmProblem } from "./algorithm-problem-jobs";
 import { resolveAlgorithmAssets } from "./algorithm-asset-resolve-jobs";
+import { generateAutomationResearch } from "./automation/research";
+import { generateAutomationStoryboard } from "./automation/storyboard";
+import { generateAutomationAudio } from "./automation/audio";
+import { renderAutomationPreview, renderAutomationVideo } from "./automation/render";
+import { packageAutomationVideo } from "./automation/package";
 import { PermanentJobError, type JobHandler } from "./job-types";
 
 export { PermanentJobError };
 
 export const handlers: Record<JobType, JobHandler> = {
+  "automation.research": generateAutomationResearch,
+  "automation.storyboard": generateAutomationStoryboard,
+  "automation.preview": renderAutomationPreview,
+  "automation.audio": generateAutomationAudio,
+  "automation.render": renderAutomationVideo,
+  "automation.package": packageAutomationVideo,
   "audio.generate": generateAudio,
   // Kiểm tra đường app → hàng đợi → worker → DB, và worker ghi được vào DATA_DIR.
   "system.ping": async (_payload, ctx) => {

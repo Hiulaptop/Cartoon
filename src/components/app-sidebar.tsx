@@ -16,6 +16,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
     title: "Sản xuất",
     links: [
       { href: "/", label: "Tổng quan", icon: LayoutDashboardIcon },
+      { href: "/automation", label: "Automation", icon: WrenchIcon },
       { href: "/series", label: "Bộ phim", icon: FilmIcon },
       { href: "/projects", label: "Project", icon: FolderTreeIcon },
     ],

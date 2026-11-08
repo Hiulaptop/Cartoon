@@ -1,0 +1,2 @@
+import { VideoForm } from "@/components/automation/forms";
+export default function NewAutomationPage() { return <div className="space-y-4"><h2 className="text-xl font-semibold">Một câu hỏi, một ý tưởng trung tâm</h2><p className="max-w-2xl text-sm text-muted-foreground">Explainer ngang 4–6 phút cho người trưởng thành tò mò. Chọn công nghệ hoặc hệ thống đời thường có thể giải thích bằng luồng, hàng đợi, so sánh và callout. Có thể lưu nháp khi chưa cấu hình dịch vụ.</p><VideoForm /></div>; }
