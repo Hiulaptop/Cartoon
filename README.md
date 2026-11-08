@@ -18,6 +18,12 @@ Next.js 15 · shadcn/ui · Tailwind CSS v4 · Postgres trên Supabase (Drizzle O
 
 Tài liệu: `docs/superpowers/specs/2026-10-29-automation-explainer-design.md`, `docs/superpowers/plans/2026-10-29-automation-explainer.md`. Chưa chạy pilot có phí hay apply migration trong phiên triển khai.
 
+## ComfyUI asset pilot (chưa nghiệm thu runtime)
+
+App có adapter/worker riêng cho sinh biến thể asset hiện có bằng ComfyUI, vẫn giữ hậu xử lý và duyệt ảnh cũ. `COMFYUI_ENABLED=false`, registry chưa có workflow/model release thật nên chưa thể sinh bằng ComfyUI; 9router vẫn mặc định, không fallback ngầm. Model/workflow được setup trong ComfyUI rồi export API format và review để phát hành.
+
+Migration `0017_puzzling_caretaker.sql` **chỉ được sinh, chưa apply**; rollout phải rà cả pending Automation 0015/0016 và thay worker cũ trước enqueue. Code mới cần bảng này kể cả khi flag tắt. Không tự bật config/network hoặc chạy GPU khi deploy. Run mơ hồ giữ để đối soát; resume dùng prompt ID cũ, không POST mới. Hướng dẫn đầy đủ và các cổng còn thiếu: [docs/comfyui-pilot.md](docs/comfyui-pilot.md).
+
 ## Kích thước khi tạo asset
 
 Form tạo asset có **Kích thước yêu cầu**: Mặc định model, 1024×1024, 1920×1080, 1080×1920, 1536×1024 và 1024×1536. Lựa chọn lưu theo asset, các biến thể/retry kế thừa; V1 không đổi preset sau tạo. Asset cũ giữ Mặc định model.

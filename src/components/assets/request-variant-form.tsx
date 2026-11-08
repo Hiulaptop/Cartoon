@@ -6,7 +6,9 @@ import { requestVariant } from "@/app/series/asset-actions";
 import type { FormState } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 
-export function RequestVariantForm({ assetId, states }: { assetId: string; states: readonly string[] }) {
+import { ImageBackendPicker, type BackendOptions } from "./image-backend-picker";
+
+export function RequestVariantForm({ assetId, states, backendOptions }: { assetId: string; states: readonly string[]; backendOptions?: BackendOptions }) {
   const [state, action, pending] = useActionState<FormState, FormData>(requestVariant, {});
   if (states.length === 0) return <p className="text-sm text-muted-foreground">Đã có đủ các trạng thái.</p>;
 
@@ -20,6 +22,7 @@ export function RequestVariantForm({ assetId, states }: { assetId: string; state
           </option>
         ))}
       </select>
+      <ImageBackendPicker {...backendOptions} />
       <Button type="submit" size="sm" disabled={pending}>
         Sinh biến thể
       </Button>

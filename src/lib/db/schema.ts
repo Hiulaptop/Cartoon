@@ -371,6 +371,26 @@ export const jobRuns = pgTable(
   ],
 );
 
+export const comfyImageRuns = pgTable("comfy_image_runs", {
+  id: id(),
+  jobRunId: uuid("job_run_id").notNull().unique().references(() => jobRuns.id, { onDelete: "restrict" }),
+  variantId: uuid("variant_id").notNull().references(() => assetVariants.id, { onDelete: "restrict" }),
+  state: text("state").notNull().default("prepared"),
+  inputSnapshot: jsonb("input_snapshot").notNull(),
+  promptId: text("prompt_id"),
+  rawArtifact: jsonb("raw_artifact"),
+  processedArtifact: jsonb("processed_artifact"),
+  error: text("error"),
+  note: text("note"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+}, (t) => [
+  check("comfy_image_run_state", sql`${t.state} IN ('prepared','submitting','submitted','succeeded','failed','uncertain','abandoned','stale')`),
+  index("comfy_image_run_variant_created").on(t.variantId, t.createdAt),
+  uniqueIndex("comfy_image_run_active_variant").on(t.variantId).where(sql`${t.state} IN ('prepared','submitting','submitted','uncertain')`),
+]);
+
 // Nội dung và lịch sử algorithm tách khỏi scripts/scenes/renders hoạt hình.
 export const algorithmRevisions = pgTable("algorithm_revisions", {
   id: id(),

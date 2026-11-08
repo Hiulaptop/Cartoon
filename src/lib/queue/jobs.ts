@@ -7,7 +7,7 @@ import { jobRuns, targetType } from "@/lib/db/schema";
 export const JOB_QUEUE = "jobs";
 
 // Mỗi mốc sau thêm loại job của mình vào đây (vd. "asset.generate" ở M2).
-export const JOB_TYPES = ["automation.research", "automation.storyboard", "automation.preview", "automation.audio", "automation.render", "automation.package","audio.generate", "system.ping", "system.llm_ping", "asset.generate_base", "asset.generate_variant", "script.generate", "scenes.generate", "video.render", "upload.youtube", "upload.suggest_metadata", "casting.propose", "algorithm.solution.generate", "algorithm.combo.propose", "algorithm.script.generate", "algorithm.animation.generate", "algorithm.video.render", "algorithm.asset.generate", "algorithm.voice.generate", "algorithm.problem.generate", "algorithm.assets.resolve"] as const;
+export const JOB_TYPES = ["automation.research", "automation.storyboard", "automation.preview", "automation.audio", "automation.render", "automation.package","audio.generate", "system.ping", "system.llm_ping", "asset.generate_base", "asset.generate_variant", "asset.comfy_image", "script.generate", "scenes.generate", "video.render", "upload.youtube", "upload.suggest_metadata", "casting.propose", "algorithm.solution.generate", "algorithm.combo.propose", "algorithm.script.generate", "algorithm.animation.generate", "algorithm.video.render", "algorithm.asset.generate", "algorithm.voice.generate", "algorithm.problem.generate", "algorithm.assets.resolve"] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 export type JobPayload = Record<string, unknown>;
 export type JobTarget = { type: (typeof targetType.enumValues)[number]; id: string };
@@ -54,6 +54,22 @@ export async function enqueueJobInTransaction(
   const sent = await tx.execute<{ msg_id: string }>(sql`SELECT pgmq.send(${JOB_QUEUE}, ${JSON.stringify(message)}::jsonb) AS msg_id`);
   await tx.update(jobRuns).set({ queueMsgId: Number(sent.rows[0].msg_id) }).where(eq(jobRuns.id, run.id));
   return run.id;
+}
+
+export async function requeueJobInTransaction(
+  tx: Parameters<Parameters<Db["transaction"]>[0]>[0],
+  jobRunId: string,
+  type: JobType,
+  payload: JobPayload,
+  target: JobTarget,
+): Promise<void> {
+  const [job] = await tx.select().from(jobRuns).where(eq(jobRuns.id, jobRunId)).for("update");
+  if (!job || job.status !== "failed" || job.jobType !== type || job.targetType !== target.type || job.targetId !== target.id) throw new Error("Job chưa ở trạng thái cho phép tiếp tục");
+  const live = await tx.execute(sql`SELECT 1 FROM pgmq.q_jobs WHERE message->>'jobRunId' = ${jobRunId} LIMIT 1`);
+  if (live.rows.length) throw new Error("Job còn delivery chưa archive; cần đối soát hàng đợi trước");
+  const message: JobMessage = { jobRunId, type, payload };
+  const sent = await tx.execute<{ msg_id: string }>(sql`SELECT pgmq.send(${JOB_QUEUE}, ${JSON.stringify(message)}::jsonb) AS msg_id`);
+  await tx.update(jobRuns).set({ status: "queued", error: null, startedAt: null, finishedAt: null, attempts: 0, metrics: {}, queueMsgId: Number(sent.rows[0].msg_id) }).where(eq(jobRuns.id, jobRunId));
 }
 
 export async function listRecentJobs(limit = 50, db: Db = getDb()) {

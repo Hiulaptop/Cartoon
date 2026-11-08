@@ -3,6 +3,7 @@ import type { JobType } from "@/lib/queue/jobs";
 import { writeDataFile } from "@/lib/storage";
 
 import { generateBase, generateVariant } from "./asset-jobs";
+import { generateComfyImage } from "./comfy-image-jobs";
 import { generateAudio } from "./audio-jobs";
 import { generateScript } from "./script-jobs";
 import { generateScenes } from "./scene-jobs";
@@ -60,6 +61,7 @@ export const handlers: Record<JobType, JobHandler> = {
   // Bước 1 (M2): asset.
   "asset.generate_base": generateBase,
   "asset.generate_variant": generateVariant,
+  "asset.comfy_image": generateComfyImage,
   "script.generate": generateScript,
   "scenes.generate": generateScenes,
   "video.render": renderVideo,
