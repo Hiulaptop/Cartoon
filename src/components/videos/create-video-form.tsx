@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { KIND_LABELS, type AssetKind } from "@/lib/assets/naming";
 import type { FormState } from "@/lib/form";
 import { PIXEL_FARM_SERIES } from "@/lib/assets/pixel-farm";
+import { MODE_LABELS, type Mode } from "@/lib/mode";
 
 const fieldClass = "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm";
 
@@ -36,14 +37,13 @@ export function AssetChecklist({ assets, selected }: { assets: AssetOption[]; se
   );
 }
 
-export function CreateVideoForm({ projectId, series }: { projectId: string; series: SeriesOption[] }) {
+export function CreateVideoForm({ projectId, series, kind }: { projectId: string; series: SeriesOption[]; kind: Mode }) {
   const [cartoonState, cartoonAction, cartoonPending] = useActionState<FormState, FormData>(createDesign, {});
   const [algorithmState, algorithmAction, algorithmPending] = useActionState<FormState, FormData>(createAlgorithmDesign, {});
-  const [kind, setKind] = useState<"" | "cartoon" | "algorithm">("");
-  const [seriesId, setSeriesId] = useState("");
+  const available = kind === "cartoon" ? series.filter((s) => s.cartoonReady) : series;
+  const [seriesId, setSeriesId] = useState(() => pickSeries(available));
   const state = kind === "algorithm" ? algorithmState : cartoonState;
   const pending = kind === "algorithm" ? algorithmPending : cartoonPending;
-  const available = kind === "cartoon" ? series.filter((s) => s.cartoonReady) : series;
   const current = available.find((s) => s.id === seriesId);
 
   return (
@@ -52,19 +52,10 @@ export function CreateVideoForm({ projectId, series }: { projectId: string; seri
       {/* Giá trị gửi qua input ẩn: React 19 gọi form.reset() sau action lỗi, làm DOM của select lệch khỏi state. */}
       <input type="hidden" name="seriesId" value={seriesId} />
       <input type="hidden" name="kind" value={kind} />
-      <label className="flex flex-col gap-1 text-sm">
-        Loại video
-        <select required value={kind} onChange={(e) => {
-          const next = e.target.value as typeof kind;
-          setKind(next);
-          setSeriesId(pickSeries(next === "cartoon" ? series.filter((s) => s.cartoonReady) : series));
-        }} className={fieldClass}>
-          <option value="">Chọn loại video trước</option>
-          <option value="cartoon">Hoạt hình</option>
-          <option value="algorithm">Giảng thuật toán</option>
-        </select>
-      </label>
-      {kind && <>
+      <p className="text-sm">
+        Loại video: <span className="font-medium">{MODE_LABELS[kind]}</span>{" "}
+        <span className="text-muted-foreground">(theo chế độ ở đầu trang; muốn tạo loại kia thì đổi chế độ)</span>
+      </p>
       <label className="flex flex-col gap-1 text-sm">
         Bộ phim
         <select value={seriesId} onChange={(e) => setSeriesId(e.target.value)} className={fieldClass}>
@@ -98,9 +89,8 @@ export function CreateVideoForm({ projectId, series }: { projectId: string; seri
       </p>
       </>}
       {available.length === 0 && <p className="text-sm text-muted-foreground">Không có bộ phim phù hợp. Hoạt hình cần nhân vật và bối cảnh đã duyệt; thuật toán chỉ cần bộ phim tồn tại.</p>}
-      </>}
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
-      <Button type="submit" disabled={pending || !kind || !current} className="self-start">
+      <Button type="submit" disabled={pending || !current} className="self-start">
         {pending ? "Đang gửi..." : "Tạo bản thiết kế"}
       </Button>
     </form>

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ComfyRunPanel } from "@/components/assets/comfy-run-panel";
+import { listAssetComfyRuns } from "@/lib/comfy/runs";
+import { listWorkflowReleases } from "@/lib/comfy/registry";
+import { getComfyConfig } from "@/lib/comfy/config";
 import { RequestVariantForm } from "@/components/assets/request-variant-form";
 import { VariantReview } from "@/components/assets/variant-review";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -30,7 +34,13 @@ export default async function AssetPage({ params }: { params: Promise<{ seriesId
   const { asset, variants } = data;
   const size = parseGenerationSize(asset.generationSize);
   const requested = size ? generationSizeInfo(size) : null;
-  const busy = variants.some((v) => v.status === "generating" || v.status === "rejected");
+  const runs = await listAssetComfyRuns(assetId);
+  const workflows = listWorkflowReleases();
+  let unavailable: string | undefined;
+  try { if (!getComfyConfig().enabled) unavailable = "ComfyUI đang tắt"; } catch { unavailable = "Cấu hình ComfyUI không hợp lệ"; }
+  if (!workflows.length) unavailable = "Chưa có workflow/model được phát hành; ComfyUI chưa dùng được";
+  const backendOptions = { workflows, unavailable };
+  const busy = runs.some((r) => ["queued", "running"].includes(r.jobStatus)) || variants.some((v) => !runs.some((r) => r.variantId === v.id && ["prepared", "submitting", "submitted", "uncertain"].includes(r.state)) && (v.status === "generating" || v.status === "rejected"));
   const missingStates = STATES_BY_KIND[asset.kind].filter((s) => s !== "base" && !variants.some((v) => v.state === s));
 
   return (
@@ -88,6 +98,7 @@ export default async function AssetPage({ params }: { params: Promise<{ seriesId
                   variantId={variant.id}
                   state={variant.state}
                   status={variant.status}
+                  backendOptions={backendOptions}
                   base={
                     variant.state === "base" && asset.status !== "approved"
                       ? { name: asset.name, displayName: asset.displayName, description: asset.description }
@@ -100,6 +111,7 @@ export default async function AssetPage({ params }: { params: Promise<{ seriesId
         })}
       </div>
 
+      <ComfyRunPanel runs={runs} />
       {asset.status === "approved" && (
         <Card>
           <CardHeader>
@@ -107,7 +119,7 @@ export default async function AssetPage({ params }: { params: Promise<{ seriesId
             <CardDescription>Trạng thái theo chuẩn đặt tên (docs/standards/asset-naming.md).</CardDescription>
           </CardHeader>
           <CardContent>
-            <RequestVariantForm assetId={asset.id} states={missingStates} />
+            <RequestVariantForm assetId={asset.id} states={missingStates} backendOptions={backendOptions} />
           </CardContent>
         </Card>
       )}

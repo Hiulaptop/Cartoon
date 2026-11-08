@@ -50,6 +50,7 @@ export const videoStatus = pgEnum("video_status", [
 ]);
 // Loại đối tượng mà validations, reviews, job_runs trỏ tới (tham chiếu đa hình, không có khóa ngoại).
 export const targetType = pgEnum("target_type", [
+  "automation_video",
   "audio_take",
   "voiceover_timeline",
   "asset",
@@ -370,6 +371,26 @@ export const jobRuns = pgTable(
   ],
 );
 
+export const comfyImageRuns = pgTable("comfy_image_runs", {
+  id: id(),
+  jobRunId: uuid("job_run_id").notNull().unique().references(() => jobRuns.id, { onDelete: "restrict" }),
+  variantId: uuid("variant_id").notNull().references(() => assetVariants.id, { onDelete: "restrict" }),
+  state: text("state").notNull().default("prepared"),
+  inputSnapshot: jsonb("input_snapshot").notNull(),
+  promptId: text("prompt_id"),
+  rawArtifact: jsonb("raw_artifact"),
+  processedArtifact: jsonb("processed_artifact"),
+  error: text("error"),
+  note: text("note"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+}, (t) => [
+  check("comfy_image_run_state", sql`${t.state} IN ('prepared','submitting','submitted','succeeded','failed','uncertain','abandoned','stale')`),
+  index("comfy_image_run_variant_created").on(t.variantId, t.createdAt),
+  uniqueIndex("comfy_image_run_active_variant").on(t.variantId).where(sql`${t.state} IN ('prepared','submitting','submitted','uncertain')`),
+]);
+
 // Nội dung và lịch sử algorithm tách khỏi scripts/scenes/renders hoạt hình.
 export const algorithmRevisions = pgTable("algorithm_revisions", {
   id: id(),
@@ -601,5 +622,69 @@ export const generationPlaybookSnapshots = pgTable("generation_playbook_snapshot
   content: jsonb("content").notNull(),
   createdAt: createdAt(),
 }, (t): PgTableExtraConfigValue[] => [unique("generation_playbook_snapshots_run_lesson").on(t.generationRunId, t.lessonId)]);
+
+// Automation độc lập với videos.kind và các revision bài giảng.
+export const automationProfiles = pgTable("automation_profiles", {
+  key: integer("key").primaryKey().default(1),
+  version: integer("version").notNull().default(1),
+  config: jsonb("config").notNull(),
+  updatedAt: updatedAt(),
+}, (t) => [check("automation_profile_singleton", sql`${t.key} = 1`)]);
+
+export const automationVideos = pgTable("automation_videos", {
+  id: id(), brief: jsonb("brief").notNull(), profileSnapshot: jsonb("profile_snapshot").notNull(),
+  lockVersion: integer("lock_version").notNull().default(1),
+  stage: text("stage").notNull().default("brief"), state: text("state").notNull().default("draft"),
+  researchId: uuid("research_id"), storyboardId: uuid("storyboard_id"), previewId: uuid("preview_id"), outputId: uuid("output_id"),
+  archived: boolean("archived").notNull().default(false), error: text("error"), workLog: jsonb("work_log").notNull().default(sql`'[]'::jsonb`),
+  createdAt: createdAt(), updatedAt: updatedAt(),
+}, (t) => [
+  check("automation_video_stage", sql`${t.stage} IN ('brief','research','storyboard','production','final','complete')`),
+  check("automation_video_state", sql`${t.state} IN ('draft','queued','running','waiting_review','blocked','failed','idle')`),
+]);
+
+export const automationRevisions = pgTable("automation_revisions", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => automationVideos.id),
+  kind: text("kind").notNull(), schemaVersion: integer("schema_version").notNull().default(1),
+  sequence: integer("sequence").notNull(), parentId: uuid("parent_id").references((): AnyPgColumn => automationRevisions.id),
+  content: jsonb("content").notNull(), hash: text("hash").notNull(),
+  inputSnapshot: jsonb("input_snapshot").notNull(), stale: boolean("stale").notNull().default(false), createdAt: createdAt(),
+}, (t) => [unique("automation_revision_owner").on(t.videoId, t.id), unique("automation_revision_sequence").on(t.videoId, t.kind, t.sequence), check("automation_revision_sequence_positive", sql`${t.sequence} > 0`), check("automation_revision_kind", sql`${t.kind} IN ('research','storyboard')`)]);
+
+export const automationSources = pgTable("automation_sources", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => automationVideos.id),
+  url: text("url").notNull(), title: text("title").notNull(), hash: text("hash").notNull(), filePath: text("file_path").notNull(),
+  readAt: createdAt(),
+});
+
+export const automationOutputs = pgTable("automation_outputs", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => automationVideos.id),
+  kind: text("kind").notNull(), status: text("status").notNull().default("generating"),
+  manifest: jsonb("manifest").notNull(), hash: text("hash"), inputSnapshot: jsonb("input_snapshot").notNull(), createdAt: createdAt(),
+}, (t) => [unique("automation_output_owner").on(t.videoId, t.id), check("automation_output_kind", sql`${t.kind} IN ('preview','audio','render','package')`), check("automation_output_status", sql`${t.status} IN ('generating','ready','stale','failed')`)]);
+
+export const automationReviews = pgTable("automation_reviews", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => automationVideos.id),
+  gate: integer("gate").notNull(), revisionId: uuid("revision_id"), outputId: uuid("output_id"),
+  subjectHash: text("subject_hash").notNull(), decision: text("decision").notNull(), note: text("note").notNull(), createdAt: createdAt(),
+}, (t) => [
+  foreignKey({ columns: [t.videoId, t.revisionId], foreignColumns: [automationRevisions.videoId, automationRevisions.id] }),
+  foreignKey({ columns: [t.videoId, t.outputId], foreignColumns: [automationOutputs.videoId, automationOutputs.id] }),
+  check("automation_review_subject", sql`(${t.gate} IN (1,2) AND ${t.revisionId} IS NOT NULL AND ${t.outputId} IS NULL) OR (${t.gate} = 3 AND ${t.outputId} IS NOT NULL AND ${t.revisionId} IS NULL)`),
+  check("automation_review_decision", sql`${t.decision} IN ('approved','rejected')`),
+]);
+
+export const automationRuns = pgTable("automation_runs", {
+  id: id(), videoId: uuid("video_id").notNull().references(() => automationVideos.id),
+  jobRunId: uuid("job_run_id").references(() => jobRuns.id), stage: text("stage").notNull(),
+  status: text("status").notNull().default("queued"), requestKey: text("request_key").notNull(),
+  inputSnapshot: jsonb("input_snapshot").notNull(), operations: jsonb("operations").notNull().default(sql`'{}'::jsonb`),
+  permit: jsonb("permit").notNull(), error: text("error"), createdAt: createdAt(), updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex("automation_active_request").on(t.videoId, t.requestKey).where(sql`${t.status} IN ('queued','running')`),
+  uniqueIndex("automation_one_active_run").on(t.videoId).where(sql`${t.status} IN ('queued','running')`),
+  check("automation_run_stage", sql`${t.stage} IN ('research','storyboard','preview','audio','render','package')`),
+  check("automation_run_status", sql`${t.status} IN ('queued','running','succeeded','stale','blocked','failed')`),
+]);
 
 export type JobRun = typeof jobRuns.$inferSelect;

@@ -2,6 +2,8 @@ import { and, eq } from "drizzle-orm";
 import sharp from "sharp";
 
 import { keyAndTrim, toPng } from "@/lib/assets/image";
+import { withVariantGenerationLock } from "@/lib/assets/generation-lock";
+import { assertNoActiveComfy } from "@/lib/comfy/runs";
 import { assetNameError, isAllowedState, isAssetKind, toAssetName, type AssetKind } from "@/lib/assets/naming";
 import { PIXEL_FARM_SERIES } from "@/lib/assets/pixel-farm";
 import { imagePrompt, parseProposal, proposalMessages, type ArtStyle } from "@/lib/assets/prompts";
@@ -44,7 +46,14 @@ function assetSize(input: unknown): AssetGenerationSize | null {
 }
 
 async function renderVariant(assetId: string, kind: AssetKind, description: string, state: string, generationSize: AssetGenerationSize | null, feedback: string | undefined, style: ArtStyle) {
+  return withVariantGenerationLock({ assetId, state }, async (signal) => {
   const db = getDb();
+  const existing = await db.transaction(async (tx) => {
+    const [variant] = await tx.select().from(assetVariants).where(and(eq(assetVariants.assetId, assetId), eq(assetVariants.state, state)));
+    if (variant) await assertNoActiveComfy(tx, variant.id);
+    return variant;
+  });
+  if (existing && ["approved", "pending_review"].includes(existing.status)) return { state, skipped: true };
   const prompt = imagePrompt(kind, description, state, feedback, style, generationSize);
   const where = and(eq(assetVariants.assetId, assetId), eq(assetVariants.state, state));
   await db
@@ -62,18 +71,22 @@ async function renderVariant(assetId: string, kind: AssetKind, description: stri
     if (!source.width || !source.height) throw new Error("Ảnh nguồn không có kích thước hợp lệ");
     const processed = kind === "bg" ? await toPng(image.data) : await keyAndTrim(image.data);
     const filePath = `assets/${assetId}/${state}.png`;
+    signal.throwIfAborted();
     await writeDataFile(filePath, processed.data);
+    signal.throwIfAborted();
     await db
       .update(assetVariants)
       .set({ filePath, width: processed.width, height: processed.height, sourceWidth: source.width, sourceHeight: source.height, status: "pending_review" })
       .where(where);
+    if (state === "base") await db.update(assets).set({ status: "pending_review" }).where(and(eq(assets.id, assetId), eq(assets.status, "generating")));
     const requested = generationSize ? generationSizeInfo(generationSize) : null;
     return { model, state, requestedSize: generationSize, transportSize: image.transportSize, sourceWidth: source.width, sourceHeight: source.height, sizeMismatch: requested ? source.width !== requested.width || source.height !== requested.height : null, width: processed.width, height: processed.height, sourceMime: image.mime };
   } catch (error) {
-    await db.update(assetVariants).set({ status: "failed" }).where(where);
+    if (!signal.aborted) await db.update(assetVariants).set({ status: "failed" }).where(where);
     if (error instanceof ImageGenerationRequestError && (error.status === 400 || error.status === 422)) throw new PermanentJobError(error.message);
     throw error;
   }
+  });
 }
 
 // Bước 1a: LLM viết mô tả và đề xuất tên, rồi sinh ảnh base.
@@ -105,7 +118,6 @@ export async function generateBase(payload: JobPayload) {
   }
 
   const result = await renderVariant(asset.id, asset.kind, asset.description, "base", assetSize(asset.generationSize), undefined, await styleOfSeries(asset.seriesId));
-  await db.update(assets).set({ status: "pending_review" }).where(eq(assets.id, asset.id));
   return { name: asset.name, llm: usage, image: result };
 }
 
@@ -119,6 +131,5 @@ export async function generateVariant(payload: JobPayload) {
   if (!asset) throw new PermanentJobError(`Không có asset ${assetId}`);
   if (!isAllowedState(asset.kind, state)) throw new PermanentJobError(`Trạng thái ${state} không hợp lệ cho ${asset.kind}`);
   const image = await renderVariant(asset.id, asset.kind, asset.description, state, assetSize(asset.generationSize), feedback, await styleOfSeries(asset.seriesId));
-  if (state === "base") await db.update(assets).set({ status: "pending_review" }).where(eq(assets.id, asset.id));
   return { name: asset.name, image };
 }

@@ -4,6 +4,26 @@ Quy trình làm phim hoạt hình 2D tiếng Anh cho YouTube, 7 bước từ ass
 
 Next.js 15 · shadcn/ui · Tailwind CSS v4 · Postgres trên Supabase (Drizzle ORM, hàng đợi pgmq) · worker Node · 9router.
 
+## Automation explainer (độc lập)
+
+Điểm vào `/automation`, luôn hiện trong cả hai mode. Câu hỏi nhập tay → nghiên cứu nguồn thật → cổng 1 → storyboard → preview thật → cổng 2 → audio/render → cổng 3 → `export.tar.gz`. Không upload YouTube. Format 1920×1080, 30 fps, H.264; mục tiêu 4–6 phút, không cắt thoại hoặc ép tốc độ khi vượt thời lượng.
+
+- Migration mới `0015_third_cyclops.sql` và `0016_fantastic_smiling_tiger.sql` chỉ được áp dụng sau khi người vận hành xác nhận đúng DB và các migration đang chờ. Không tự apply khi mở trang. Các migration cũ có thể có thao tác phá dữ liệu; đọc lịch sử trước khi chạy migrate.
+- `AUTOMATION_EXECUTION_ENABLED=false` mặc định. Chỉ bật khi đã cấu hình hồ sơ, quyền sử dụng và local/private hoặc kiểm soát truy cập upstream. Đây không phải authentication. **Không bật trên public tunnel không bảo vệ.**
+- Hồ sơ snapshot khi tạo tập: model viết chính xác, wire model/voice ID do 9router công bố, hostname nguồn khớp chính xác, ngân sách và xác nhận quyền. Có thể áp dụng hồ sơ mới bằng thao tác tường minh: làm cũ research/storyboard/output và duyệt lại từ đầu. Không điền API key vào hồ sơ. TTS không âm thầm đổi voice/model.
+- Giá/cap của router chưa xác minh: ledger ghi `unknown`, không biến số ngân sách thành cam kết hard cap. Mỗi chặng cần consent và số request tối đa riêng; repairs tính vào số này. Timeout/crash không biết upstream đã xử lý chưa sẽ dừng, không tự charge lại. Có form đối soát theo run/operation, yêu cầu ghi căn cứ upstream và xác nhận worker cũ đã dừng; chỉ dùng khi không còn run active. Thao tác giữ lịch sử/chi phí unknown, không phục hồi artifact hoặc tự gửi lại. HTTP 4xx cũng không tự coi là chưa tính tiền.
+- Nguồn chỉ HTTPS:443, không redirect/compression/login/PDF/JavaScript, tối đa 6 URL và 2 MiB/nguồn; research chỉ nhận tối đa 12.000 ký tự trích xuất/nguồn (từ chối nguồn dài, không cắt ngầm). Lỗi từng URL được ghi trong run; chỉ dùng nguồn đọc thành công. Snapshot nằm riêng và bị chặn ở `/api/files`; exports không chứa toàn văn bên thứ ba.
+- Gói chứa video, phụ đề, thumbnail, metadata, nguồn, manifest và editorial; tải chính thức cần duyệt bản cuối. Preview và các file hiện hành (video, thumbnail, SRT, metadata, nguồn, editorial, manifest) được mở bằng đường review để duyệt, chưa phải gói phát hành đã duyệt. Ngoài 4–6 phút bị chặn trừ khi người vận hành ghi lý do ngoại lệ tường minh cho lượt render. Chưa có auth theo người dùng; đường review không phải cơ chế bảo mật độc lập.
+- Cần review nghe/nhìn thật trước sử dụng; static checks không chứng minh kiến thức, chất lượng voice hoặc năng suất. Mục tiêu 1 tập/tuần với 5 giờ người chưa được pilot xác minh. Worker tuần tự; render có thể chặn job khác.
+
+Tài liệu: `docs/superpowers/specs/2026-10-29-automation-explainer-design.md`, `docs/superpowers/plans/2026-10-29-automation-explainer.md`. Chưa chạy pilot có phí hay apply migration trong phiên triển khai.
+
+## ComfyUI asset pilot (chưa nghiệm thu runtime)
+
+App có adapter/worker riêng cho sinh biến thể asset hiện có bằng ComfyUI, vẫn giữ hậu xử lý và duyệt ảnh cũ. `COMFYUI_ENABLED=false`, registry chưa có workflow/model release thật nên chưa thể sinh bằng ComfyUI; 9router vẫn mặc định, không fallback ngầm. Model/workflow được setup trong ComfyUI rồi export API format và review để phát hành.
+
+Migration `0017_puzzling_caretaker.sql` **chỉ được sinh, chưa apply**; rollout phải rà cả pending Automation 0015/0016 và thay worker cũ trước enqueue. Code mới cần bảng này kể cả khi flag tắt. Không tự bật config/network hoặc chạy GPU khi deploy. Run mơ hồ giữ để đối soát; resume dùng prompt ID cũ, không POST mới. Hướng dẫn đầy đủ và các cổng còn thiếu: [docs/comfyui-pilot.md](docs/comfyui-pilot.md).
+
 ## Kích thước khi tạo asset
 
 Form tạo asset có **Kích thước yêu cầu**: Mặc định model, 1024×1024, 1920×1080, 1080×1920, 1536×1024 và 1024×1536. Lựa chọn lưu theo asset, các biến thể/retry kế thừa; V1 không đổi preset sau tạo. Asset cũ giữ Mặc định model.

@@ -106,6 +106,27 @@
       "when": 1793178271194,
       "tag": "0014_crazy_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793280952628,
+      "tag": "0015_third_cyclops",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793281683073,
+      "tag": "0016_fantastic_smiling_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793344131077,
+      "tag": "0017_puzzling_caretaker",
+      "breakpoints": true
     }
   ]
 }

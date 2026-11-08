@@ -7,6 +7,8 @@ import type { FormState } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { ImageBackendPicker, type BackendOptions } from "./image-backend-picker";
+
 const fieldClass = "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm";
 
 type Props = {
@@ -14,11 +16,12 @@ type Props = {
   variantId: string;
   state: string;
   status: string;
+  backendOptions?: BackendOptions;
   // Chỉ có với ảnh gốc: duyệt base = chốt tên, tên hiển thị, mô tả.
   base?: { name: string; displayName: string; description: string };
 };
 
-export function VariantReview({ assetId, variantId, state, status, base }: Props) {
+export function VariantReview({ assetId, variantId, state, status, base, backendOptions }: Props) {
   const [approveState, approve, approving] = useActionState<FormState, FormData>(approveVariant, {});
   const [rejectState, reject, rejecting] = useActionState<FormState, FormData>(rejectVariant, {});
   const [retryState, retry, retrying] = useActionState<FormState, FormData>(retryVariant, {});
@@ -28,8 +31,9 @@ export function VariantReview({ assetId, variantId, state, status, base }: Props
       <form action={retry} className="flex flex-col gap-2">
         <input type="hidden" name="assetId" value={assetId} />
         <input type="hidden" name="state" value={state} />
+        <ImageBackendPicker {...backendOptions} />
         <Button type="submit" variant="outline" size="sm" disabled={retrying}>
-          Sinh lại
+          Tạo lượt sinh mới
         </Button>
         {retryState.error && <p className="text-xs text-destructive">{retryState.error}</p>}
       </form>
@@ -65,6 +69,7 @@ export function VariantReview({ assetId, variantId, state, status, base }: Props
 
       <form action={reject} className="flex flex-col gap-2">
         <input type="hidden" name="variantId" value={variantId} />
+        <ImageBackendPicker {...backendOptions} />
         <textarea name="reason" rows={2} placeholder="Lý do loại (sẽ đưa vào prompt lần sau)" className={fieldClass} />
         <Button type="submit" variant="outline" size="sm" disabled={rejecting}>
           Loại và sinh lại
