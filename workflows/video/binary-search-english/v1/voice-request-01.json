@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "requestId": "binary-search-en-v1-01",
+  "language": "English",
+  "speaker": "Ryan",
+  "fps": 30,
+  "cues": [
+    {
+      "id": "c01",
+      "text": "Imagine one million numbers, already sorted from smallest to largest. Somewhere in that list is your target. How many positions would you need to check?",
+      "preset": "engaging-hook",
+      "seed": 1101001
+    },
+    {
+      "id": "c02",
+      "text": "Checking from the beginning could take a million checks. But choose each position strategically, and at most twenty checks are enough. Not twenty thousand. Just twenty.",
+      "preset": "engaging-hook",
+      "seed": 1101002
+    },
+    {
+      "id": "c03",
+      "text": "Try guessing a position without a plan. A wrong guess tells you little unless you use the ordering. This unsystematic guessing is not what we call linear search.",
+      "preset": "engaging-hook",
+      "seed": 1101003
+    },
+    {
+      "id": "c04",
+      "text": "The trick is not a faster computer, or a lucky guess. It is asking a question whose answer lets you safely throw away a huge number of possibilities.",
+      "preset": "engaging-hook",
+      "seed": 1101004
+    },
+    {
+      "id": "c05",
+      "text": "First, meet linear search. Start at the first position, check the value, and move to the next position if it is not the target. Nothing is skipped.",
+      "preset": "clear-explainer",
+      "seed": 1101005
+    },
+    {
+      "id": "c06",
+      "text": "On this small array, imagine looking for the final value. Each rejected cell costs one more check. The counter measures positions inspected, not seconds or individual processor instructions.",
+      "preset": "clear-explainer",
+      "seed": 1101006
+    },
+    {
+      "id": "c07",
+      "text": "Now scale that idea to the numbers one through one million. Our target is one million, right at the end. Linear search must inspect every position to reach it.",
+      "preset": "clear-explainer",
+      "seed": 1101007
+    },
+    {
+      "id": "c08",
+      "text": "The sweeping display is accelerated. Each block represents many positions, not one number. This is an illustration of work, not a stopwatch measurement of a real computer.",
+      "preset": "clear-explainer",
+      "seed": 1101008
+    },
+    {
+      "id": "c09",
+      "text": "Double the list length, and this worst case doubles too. Linear search can still be useful, especially on small or unsorted collections. It simply does not exploit sorted order here.",
+      "preset": "clear-explainer",
+      "seed": 1101009
+    },
+    {
+      "id": "c10",
+      "text": "Keep that million-check result in mind. We will search the same ordered list for the same target, but change what we learn from every unsuccessful check.",
+      "preset": "clear-explainer",
+      "seed": 1101010
+    },
+    {
+      "id": "c11",
+      "text": "Start with twelve readable values. We want ninety-one. The blue interval contains every position that could still hold it. At the beginning, that means the entire array.",
+      "preset": "clear-explainer",
+      "seed": 1101011
+    },
+    {
+      "id": "c12",
+      "text": "Inspect the middle position, rounding down when there are two middle choices. The value is twenty-three. Our target, ninety-one, is larger. Which side could possibly contain it?",
+      "preset": "clear-explainer",
+      "seed": 1101012
+    },
+    {
+      "id": "c13",
+      "text": "Every value to the left is no larger than twenty-three. So none can be ninety-one. Discard that whole section, including the middle value we have already checked.",
+      "preset": "clear-explainer",
+      "seed": 1101013
+    },
+    {
+      "id": "c14",
+      "text": "Notice the reason this is safe. We are not merely hoping the answer is on the right. The sorted order proves that the discarded values cannot be our target.",
+      "preset": "clear-explainer",
+      "seed": 1101014
+    },
+    {
+      "id": "c15",
+      "text": "Inside the remaining interval, inspect the middle again. This time it is seventy-two. Ninety-one is larger, so discard everything through seventy-two. Only three candidate positions remain.",
+      "preset": "clear-explainer",
+      "seed": 1101015
+    },
+    {
+      "id": "c16",
+      "text": "The next middle value is one hundred four. Now the target is smaller. Reverse the direction: discard that middle value and everything to its right. One candidate remains.",
+      "preset": "clear-explainer",
+      "seed": 1101016
+    },
+    {
+      "id": "c17",
+      "text": "Check that last position. Ninety-one: found. Four inspected positions, rather than checking the first ten values one by one. The arrows show indexes; the cell contents show values.",
+      "preset": "clear-explainer",
+      "seed": 1101017
+    },
+    {
+      "id": "c18",
+      "text": "This is binary search. Its promise is that, if the target exists, it stays inside the active interval. Every move preserves that promise while making the interval smaller.",
+      "preset": "clear-explainer",
+      "seed": 1101018
+    },
+    {
+      "id": "c19",
+      "text": "Return to one million positions. Drawing every cell would hide the explanation, so this bar shows the whole interval. Exact boundaries and remaining candidate counts stay visible beside it.",
+      "preset": "clear-explainer",
+      "seed": 1101019
+    },
+    {
+      "id": "c20",
+      "text": "The first middle value is five hundred thousand. Our target is larger. One check removes half a million positions. We have learned more than merely that one value was wrong.",
+      "preset": "clear-explainer",
+      "seed": 1101020
+    },
+    {
+      "id": "c21",
+      "text": "Check the middle of the survivors. Then do it again. Watch the candidate count fall while the step counter increases by just one each time. The two numbers tell the story.",
+      "preset": "clear-explainer",
+      "seed": 1101021
+    },
+    {
+      "id": "c22",
+      "text": "Five checks have already reduced the interval to thirty-one thousand two hundred fifty candidates. That is still many values, but the same strategy continues without changing its rules.",
+      "preset": "clear-explainer",
+      "seed": 1101022
+    },
+    {
+      "id": "c23",
+      "text": "After ten checks, only nine hundred seventy-six candidates remain in this exact example. The interval is tiny compared with the original list. We magnify the local neighborhood so you can follow it.",
+      "preset": "clear-explainer",
+      "seed": 1101023
+    },
+    {
+      "id": "c24",
+      "text": "Keep halving. Thirty candidates become fifteen, then seven, then three, then one. These are discrete positions, so rounding matters. The display uses actual search states, not rounded guesses.",
+      "preset": "clear-explainer",
+      "seed": 1101024
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "requestId": "binary-search-en-v1-02",
+  "language": "English",
+  "speaker": "Ryan",
+  "fps": 30,
+  "cues": [
+    {
+      "id": "c25",
+      "text": "The twentieth check inspects one million and finds the target. Linear search checked a million positions; binary search checked twenty. Their playback speeds are illustrative, not a measured speed ratio.",
+      "preset": "clear-explainer",
+      "seed": 1101025
+    },
+    {
+      "id": "c26",
+      "text": "Why does twenty keep appearing? Forget the name of the algorithm for a moment. Ask how many times you must halve a million possibilities before only about one remains.",
+      "preset": "clear-explainer",
+      "seed": 1101026
+    },
+    {
+      "id": "c27",
+      "text": "One halving gives roughly five hundred thousand. Two give roughly two hundred fifty thousand. Ten halvings reduce the original size by a factor of one thousand twenty-four.",
+      "preset": "clear-explainer",
+      "seed": 1101027
+    },
+    {
+      "id": "c28",
+      "text": "Now reverse the question. How many times can we double one before passing a million? Nineteen doublings are not enough. Twenty doublings reach one million forty-eight thousand five hundred seventy-six.",
+      "preset": "clear-explainer",
+      "seed": 1101028
+    },
+    {
+      "id": "c29",
+      "text": "That doubling count is the intuition behind a base-two logarithm. It answers how many factors of two connect one to a size. Only now do we give the pattern its mathematical name.",
+      "preset": "clear-explainer",
+      "seed": 1101029
+    },
+    {
+      "id": "c30",
+      "text": "For our inclusive-bound search, the exact worst-case count is the whole-number part of the base-two logarithm, plus one. For one million, that is twenty position checks at most.",
+      "preset": "clear-explainer",
+      "seed": 1101030
+    },
+    {
+      "id": "c31",
+      "text": "Not every target takes twenty checks. A target at the first midpoint is found immediately. The twenty-step claim is a worst-case guarantee for this list size and search convention.",
+      "preset": "clear-explainer",
+      "seed": 1101031
+    },
+    {
+      "id": "c32",
+      "text": "Double the data, and binary search needs only about one additional check in the worst case. Linear search may need twice as many. That difference in growth is the real advantage.",
+      "preset": "clear-explainer",
+      "seed": 1101032
+    },
+    {
+      "id": "c33",
+      "text": "But there is a condition we cannot ignore: the values must be ordered. Put a large value near the beginning and a smaller target on its right, and the elimination argument breaks.",
+      "preset": "clear-explainer",
+      "seed": 1101033
+    },
+    {
+      "id": "c34",
+      "text": "On an unsorted array, smaller does not mean left. Discarding the right half might discard the answer itself. Binary search is safe because of an ordering guarantee, not because middle positions are magical.",
+      "preset": "clear-explainer",
+      "seed": 1101034
+    },
+    {
+      "id": "c35",
+      "text": "What if the target is absent? Search the small sorted array for ninety instead. Follow the same comparisons until the lower boundary passes the upper boundary. No candidates remain.",
+      "preset": "clear-explainer",
+      "seed": 1101035
+    },
+    {
+      "id": "c36",
+      "text": "An empty interval is a valid answer: not found. The method does not need to inspect every value because it has already proved that each discarded region cannot contain ninety.",
+      "preset": "clear-explainer",
+      "seed": 1101036
+    },
+    {
+      "id": "c37",
+      "text": "Sorting is not free, and keeping changing data sorted has a cost too. For one search, sorting first may be unnecessary. For many searches, that preparation can become worthwhile.",
+      "preset": "clear-explainer",
+      "seed": 1101037
+    },
+    {
+      "id": "c38",
+      "text": "Remember the picture: one ordered interval, one midpoint, one justified elimination. Repeat. Binary search is fast because each unsuccessful check removes roughly half the remaining possibilities, without losing the target.",
+      "preset": "clear-explainer",
+      "seed": 1101038
+    },
+    {
+      "id": "c39",
+      "text": "One million positions. At most twenty checks. Not a mysterious trick: a small question with a large consequence. The next question is what it costs to create that useful order.",
+      "preset": "clear-explainer",
+      "seed": 1101039
+    }
+  ]
+}
