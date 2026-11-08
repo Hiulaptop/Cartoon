@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "defaultPreset": "science",
+  "presets": [
+    {
+      "id": "science",
+      "name": "Science illustration",
+      "purpose": "Wide editorial illustration. Images are not scientific evidence; no continuity guarantee.",
+      "positive": "Beautiful clear blue daytime sky over rolling green hills, tiny white clouds, sunlight, wide landscape, clean editorial science illustration, painterly 3D illustration, beautiful lighting, no words",
+      "negative": "text, letters, watermark, logo, blurry, low quality, distorted, malformed, photorealistic humans",
+      "exampleSubject": "Blue daytime sky over rolling green hills",
+      "seed": 730100
+    },
+    {
+      "id": "pixel-farm",
+      "name": "Pixel Farm",
+      "purpose": "Cozy pixel-art garden. Does not preserve the same place across images or establish before/after growth.",
+      "positive": "Pixel art game landscape, small cozy vegetable garden with lush green leafy vegetables and bright orange carrots, wooden fence, red barn in background, sunshine after rain, charming 16 bit pixel art, wide composition, no characters, no text",
+      "negative": "text, letters, watermark, logo, blurry, low quality, distorted, malformed, photorealistic humans",
+      "exampleSubject": "Lush vegetable garden with a wooden fence and red barn",
+      "seed": 730103
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal illustration",
+      "purpose": "Simple editorial illustration with negative space for later typography. Subject accuracy is not guaranteed.",
+      "positive": "Minimal beautiful editorial illustration of a tiny green sprout in a terracotta pot on a clean cream desktop, morning sunlight, soft blue background, generous negative space, simple 3D clay render, wide composition, no words",
+      "negative": "text, letters, watermark, logo, blurry, low quality, distorted, malformed, photorealistic humans",
+      "exampleSubject": "Small green sprout in a terracotta pot",
+      "seed": 730104
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "sdxl-illustration",
+  "revision": "v1",
+  "artifacts": {
+    "workflow.json": {"rawSha256": "84262a063ac1324f836db6f7a3ba22ece8eac20ef5821c5f75a6071f3530f11b"},
+    "workflow-api.json": {"rawSha256": "7e86fd183f5c82c4dbfe23fcfe4b437dd3a688f6aa2522016ca5b7a92d166251"},
+    "presets.json": {"rawSha256": "31b3d114ef2df827aaa3a1877d6805a467596acbda80f673e1d99ebcf8bea32d"}
+  },
+  "apiCanonicalSha256": "3be19c6722ac17f82142123feffbbdbb743f95f7563c9c92bec615761133b963",
+  "canonicalization": "Full API graph; recursively sorted object keys; preserved array order; JSON.stringify without whitespace; SHA-256 UTF-8. Semantic comparison separately removes non-executing _meta.",
+  "model": {
+    "filename": "sd_xl_base_1.0.safetensors",
+    "bytes": 6938078334,
+    "sha256": "31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b",
+    "source": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+    "licenseNote": "CreativeML Open RAIL++-M. Read upstream model card/license restrictions; not public domain or blanket commercial clearance."
+  },
+  "bindings": {
+    "positive": {"nodeId": "6", "input": "text"},
+    "negative": {"nodeId": "7", "input": "text"},
+    "seed": {"nodeId": "3", "input": "seed"},
+    "width": {"nodeId": "5", "input": "width"},
+    "height": {"nodeId": "5", "input": "height"},
+    "batch": {"nodeId": "5", "input": "batch_size"},
+    "prefix": {"nodeId": "9", "input": "filename_prefix"}
+  },
+  "outputNode": "9",
+  "defaultSize": {"width": 1024, "height": 576},
+  "allowedSizes": [{"width": 1024, "height": 576}],
+  "settings": {"batchSize": 1, "steps": 24, "cfg": 6.5, "sampler": "euler", "scheduler": "normal", "denoise": 1},
+  "defaultSeed": 730100,
+  "seedControl": "fixed",
+  "defaultPreset": "science",
+  "defaultPrefix": "cartoon_workflow_sdxl_v1",
+  "compatibility": {
+    "historical": {
+      "observedDate": "2026-10-30",
+      "comfyVersion": "0.43.2",
+      "frontendVersion": "1.57.4",
+      "evidence": "data/spikes/comfy-video-20261030/environment.json",
+      "scope": "Earlier succeeded API graph demo, not generation acceptance of this pack"
+    },
+    "live": {
+      "observedAt": "2026-10-30T11:50:40Z",
+      "comfyVersion": "0.43.2",
+      "frontendVersion": "1.57.4",
+      "pythonVersion": "3.13.12",
+      "pytorchVersion": "2.12.0+rocm7.14.0",
+      "nodeClasses": ["CheckpointLoaderSimple", "CLIPTextEncode", "EmptyLatentImage", "KSampler", "VAEDecode", "SaveImage"],
+      "evidence": "acceptance.md#inventory"
+    },
+    "workflowFormat": 0.4,
+    "frontendRoundTripAt": "2026-10-30T11:57:58.230Z"
+  },
+  "acceptance": {
+    "inventory": {"status": "passed", "evidence": "acceptance.md#inventory"},
+    "packaging": {"status": "passed", "evidence": "acceptance.md#kiem-artifact-cuoi", "reason": "All six files present"},
+    "static": {"status": "passed", "evidence": "acceptance.md#kiem-artifact-cuoi", "reason": "JSON/hash/baseline/preset/link/binding/settings/scope inspection passed; not generation acceptance"},
+    "uiSerializerRoundTrip": {
+      "status": "passed",
+      "evidence": "data/spikes/comfy-workflow-pack-20261030/final-frontend-evidence.json",
+      "exportEvidence": "data/spikes/comfy-workflow-pack-20261030/final-exported-api.json",
+      "exportRawSha256": "f1cdd13e269af3fb2e0456fdd2469b432cba7f08eebda776fad3b4a430e6d023",
+      "method": "Installed frontend serializer/loadGraphData/graphToPrompt in isolated browser; semantic equality after removing _meta; seven nodes with no reported node errors and fixed seed; no generation"
+    },
+    "uiMenuFileRoundTrip": {"status": "pending", "reason": "OS file picker, menu save and menu API export not exercised end-to-end"},
+    "visualLayout": {"status": "passed", "evidence": "data/spikes/comfy-workflow-pack-20261030/workflow-editor-full.png", "reason": "Seven nodes/four groups inspected in full frontend screenshot. Zoom/pan needed to read prompts; canvas-only capture omits DOM-rendered text."},
+    "generation": {
+      "science": {"status": "pending", "reason": "No separate permission for new generation"},
+      "pixel-farm": {"status": "pending", "reason": "No separate permission for new generation"},
+      "minimal": {"status": "pending", "reason": "No separate permission for new generation"}
+    },
+    "production": "not_released"
+  },
+  "pathConvention": "Pack files are relative to this directory. Evidence paths beginning data/ or docs/ are relative to repo root; runtime evidence is not bundled in this six-file pack."
+}
