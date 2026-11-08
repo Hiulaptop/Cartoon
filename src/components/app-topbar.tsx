@@ -5,11 +5,13 @@ import { useTheme } from "next-themes";
 import { useState } from "react";
 
 import { SidebarNav } from "@/components/app-sidebar";
+import { ModeSwitch } from "@/components/mode-switch";
 import { NotificationBell } from "@/components/notification-bell";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import type { Mode } from "@/lib/mode";
 
-export function AppTopbar() {
+export function AppTopbar({ mode }: { mode: Mode }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   return (
@@ -25,9 +27,10 @@ export function AppTopbar() {
             <SheetTitle>Menu</SheetTitle>
             <SheetDescription>Điều hướng giữa các khu vực của ứng dụng</SheetDescription>
           </SheetHeader>
-          <SidebarNav onNavigate={() => setMenuOpen(false)} />
+          <SidebarNav mode={mode} onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
       </Sheet>
+      <ModeSwitch mode={mode} />
       <div className="ml-auto flex gap-1">
         <NotificationBell />
         <Button variant="ghost" size="icon" aria-label="Đổi giao diện sáng hoặc tối" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>

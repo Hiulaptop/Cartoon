@@ -5,7 +5,9 @@ import { CreateProjectForm, ProjectSettings } from "@/components/projects/projec
 import { TreeList } from "@/components/projects/tree-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ancestors, loadTree } from "@/lib/project/queries";
-import { findProject, type ProjectNode } from "@/lib/project/tree";
+import { MODE_LABELS } from "@/lib/mode";
+import { getMode } from "@/lib/mode-server";
+import { filterTreeByKind, findProject, type ProjectNode } from "@/lib/project/tree";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const roots = await loadTree();
   const node = findProject(roots, id);
   if (!node) notFound();
+  const mode = await getMode();
+  const view = findProject(filterTreeByKind(roots, mode), id);
+  if (!view) notFound();
+  const hidden = node.summary().designs - view.summary().designs;
   const trail = await ancestors(id);
 
   return (
@@ -60,7 +66,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       {node.projects.length === 0 && node.designs.length === 0 ? (
         <p className="text-sm text-muted-foreground">Thư mục trống.</p>
       ) : (
-        <TreeList nodes={[node]} />
+        <TreeList nodes={[view]} />
+      )}
+      {hidden > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Đang ẩn {hidden} design của chế độ {MODE_LABELS[mode === "cartoon" ? "algorithm" : "cartoon"]} trong thư mục này. Đổi chế độ ở đầu trang để xem.
+        </p>
       )}
 
       <Card>

@@ -82,3 +82,16 @@ export function findProject(roots: ProjectNode[], id: string): ProjectNode | nul
   }
   return null;
 }
+
+// Bản sao cây chỉ giữ design thuộc `kind`; thư mục giữ nguyên. CHỈ dùng để hiển thị:
+// kiểm tra "trống" hay chặn xoá phải dùng cây gốc chưa lọc (spec S5).
+export function filterTreeByKind(roots: readonly ProjectNode[], kind: VideoKind): ProjectNode[] {
+  return roots.map((root) => {
+    const copy = new ProjectNode(root.id, root.name, root.parentId);
+    copy.projects.push(...filterTreeByKind(root.projects, kind));
+    copy.designs.push(...root.designs.filter((design) => design.videoKind === kind));
+    return copy;
+  });
+}
+
+export const countDesigns = (nodes: readonly ProjectNode[]): number => nodes.reduce((total, node) => total + node.summary().designs, 0);

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DesignTabs } from "@/components/designs/design-tabs";
+import { ModeSync } from "@/components/designs/mode-sync";
+import { getMode } from "@/lib/mode-server";
 import { ancestors } from "@/lib/project/queries";
 import { getSeries } from "@/lib/series/queries";
 import { getDesign } from "@/lib/video/queries";
@@ -17,10 +19,12 @@ export default async function DesignLayout({ children, params }: { children: Rea
   if (!UUID_RE.test(id)) notFound();
   const video = await getDesign(id);
   if (!video) notFound();
+  const mode = await getMode();
   const [trail, series] = await Promise.all([ancestors(video.projectId), getSeries(video.seriesId)]);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      {mode !== video.kind && <ModeSync designId={id} kind={video.kind} />}
       <div className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">
           <Link href="/projects" className="hover:underline">

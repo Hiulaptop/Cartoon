@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { CreateVideoForm, type SeriesOption } from "@/components/videos/create-video-form";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
+import { MODE_LABELS } from "@/lib/mode";
+import { getMode } from "@/lib/mode-server";
 import { loadApprovedCatalog } from "@/lib/scene/catalog";
 import { listSeries, readySeriesIds } from "@/lib/series/queries";
 import { eq } from "drizzle-orm";
@@ -17,6 +19,7 @@ export default async function NewDesignPage({ params }: { params: Promise<{ id: 
   if (!UUID_RE.test(id)) notFound();
   const [project] = await getDb().select().from(projects).where(eq(projects.id, id)).limit(1);
   if (!project) notFound();
+  const mode = await getMode();
 
   const [all, ready] = await Promise.all([listSeries(), readySeriesIds()]);
   // Algorithm chọn mọi bộ phim; form và action vẫn giữ cổng asset riêng của cartoon.
@@ -39,7 +42,7 @@ export default async function NewDesignPage({ params }: { params: Promise<{ id: 
           ← {project.name}
         </Link>
         <h1 className="text-2xl font-semibold">Bản thiết kế mới</h1>
-        <p className="text-sm text-muted-foreground">Chọn loại video trước, rồi chọn bộ phim làm nguồn asset dùng lại.</p>
+        <p className="text-sm text-muted-foreground">Chọn bộ phim làm nguồn asset dùng lại cho bản thiết kế {MODE_LABELS[mode]}.</p>
       </div>
       {options.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -50,7 +53,7 @@ export default async function NewDesignPage({ params }: { params: Promise<{ id: 
           .
         </p>
       ) : (
-        <CreateVideoForm projectId={id} series={options} />
+        <CreateVideoForm projectId={id} series={options} kind={mode} />
       )}
     </div>
   );

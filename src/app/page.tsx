@@ -4,6 +4,9 @@ import { JobButtons } from "@/components/job-buttons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/lib/db/client";
 import { algorithmWorkflows, videos } from "@/lib/db/schema";
+import { STEPS as ALGORITHM_STEPS } from "@/lib/algorithm/steps";
+import { MODE_LABELS } from "@/lib/mode";
+import { getMode } from "@/lib/mode-server";
 import { PIPELINE_STEPS } from "@/lib/pipeline/steps";
 import { agreementRate } from "@/lib/scene/queries";
 import { listSeries } from "@/lib/series/queries";
@@ -25,17 +28,18 @@ function StatusRow({ label, check }: { label: string; check: Check }) {
 }
 
 export default async function Home() {
+  const mode = await getMode();
   const status = await getSystemStatus();
   // Phần dữ liệu không được làm hỏng trang khi DB lỗi (khối Hệ thống đã báo lỗi DB).
   const [seriesList, recent, rate] = await Promise.all([
     listSeries().catch(() => []),
-    getDb().select({ id: videos.id, title: videos.title, kind: videos.kind, stage: algorithmWorkflows.stage }).from(videos).leftJoin(algorithmWorkflows, eq(algorithmWorkflows.videoId, videos.id)).orderBy(desc(videos.createdAt)).limit(5).catch(() => []),
+    getDb().select({ id: videos.id, title: videos.title, kind: videos.kind, stage: algorithmWorkflows.stage }).from(videos).leftJoin(algorithmWorkflows, eq(algorithmWorkflows.videoId, videos.id)).where(eq(videos.kind, mode)).orderBy(desc(videos.createdAt)).limit(5).catch(() => []),
     agreementRate().catch(() => ({ agree: 0, total: 0 })),
   ]);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Tổng quan</h1>
+      <h1 className="text-2xl font-semibold">Tổng quan · {MODE_LABELS[mode]}</h1>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -64,7 +68,7 @@ export default async function Home() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={mode === "cartoon" ? "grid gap-4 md:grid-cols-3" : "grid gap-4 md:grid-cols-2"}>
         <Card>
           <CardHeader>
             <CardTitle>
@@ -72,7 +76,7 @@ export default async function Home() {
                 Bộ phim
               </Link>
             </CardTitle>
-            <CardDescription>Bước 1: asset của từng bộ phim</CardDescription>
+            <CardDescription>{mode === "cartoon" ? "Bước 1: asset của từng bộ phim" : "Asset cho cảnh truyện dẫn của từng bộ phim"}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm">
             {seriesList.length === 0 && <span className="text-muted-foreground">Chưa có bộ phim.</span>}
@@ -90,7 +94,7 @@ export default async function Home() {
                 Bản thiết kế gần đây
               </Link>
             </CardTitle>
-            <CardDescription>Bước 2–7 nằm trong từng bản thiết kế</CardDescription>
+            <CardDescription>{mode === "cartoon" ? "Bước 2–7 nằm trong từng bản thiết kế" : "Mỗi bản thiết kế có workspace 7 bước riêng"}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 text-sm">
             {recent.length === 0 && <span className="text-muted-foreground">Chưa có bản thiết kế.</span>}
@@ -101,31 +105,47 @@ export default async function Home() {
             ))}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Đồng thuận giám khảo – người</CardTitle>
-            <CardDescription>Cảnh mà kết luận giám khảo trùng quyết định của bạn (spec §6)</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm">
-            {rate.total === 0 ? "Chưa có dữ liệu." : `${rate.agree}/${rate.total} (${Math.round((rate.agree / rate.total) * 100)}%)`}
-          </CardContent>
-        </Card>
+        {mode === "cartoon" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Đồng thuận giám khảo – người</CardTitle>
+              <CardDescription>Cảnh mà kết luận giám khảo trùng quyết định của bạn (spec §6)</CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm">
+              {rate.total === 0 ? "Chưa có dữ liệu." : `${rate.agree}/${rate.total} (${Math.round((rate.agree / rate.total) * 100)}%)`}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Quy trình 7 bước</h2>
+        <h2 className="text-lg font-semibold">Quy trình {MODE_LABELS[mode].toLowerCase()} (7 bước)</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PIPELINE_STEPS.map((step) => (
-            <Card key={step.number} className={step.hidden ? "opacity-60" : undefined}>
-              <CardHeader>
-                <CardTitle>
-                  {step.number}. {step.title}
-                </CardTitle>
-                <CardDescription>{step.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">{step.where}</CardContent>
-            </Card>
-          ))}
+          {mode === "cartoon"
+            ? PIPELINE_STEPS.map((step) => (
+                <Card key={step.number} className={step.hidden ? "opacity-60" : undefined}>
+                  <CardHeader>
+                    <CardTitle>
+                      {step.number}. {step.title}
+                    </CardTitle>
+                    <CardDescription>{step.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-xs text-muted-foreground">{step.where}</CardContent>
+                </Card>
+              ))
+            : ALGORITHM_STEPS.map((step, index) => (
+                <Card key={step.key}>
+                  <CardHeader>
+                    <CardTitle>
+                      {index + 1}. {step.label}
+                    </CardTitle>
+                    <CardDescription>
+                      {step.requires ? `Cần hoàn tất: ${ALGORITHM_STEPS.find((s) => s.key === step.requires)?.label}` : "Bước đầu tiên"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-xs text-muted-foreground">Bản thiết kế › Workspace giảng bài</CardContent>
+                </Card>
+              ))}
         </div>
       </section>
     </div>
